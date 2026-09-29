@@ -33,6 +33,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   String _activeFrequency = 'All'; // 'All', 'One-Time', 'Monthly'
   late List<ServiceItem> _services;
   bool _isLoading = false;
+  bool _isSearchOpen = false;
 
   @override
   void initState() {
@@ -97,6 +98,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     setState(() {
       _searchQuery = '';
       _activeFrequency = 'All';
+      _isSearchOpen = false;
     });
     _loadServices();
   }
@@ -113,8 +115,6 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final title = _formatCategoryTitle();
-    final subtitle = widget.headerSubtitle ??
-        'Select a service below to view coverage, price specs, and book verified professionals.';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -123,235 +123,75 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
           onRefresh: _loadServices,
           color: AppColors.primary,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Top Navigation Bar ──────────────────────────────────────────
+              // ── Top Navigation Bar (Header with Title Left & Search Right) ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.sm,
                   AppSpacing.sm,
-                  AppSpacing.lg,
+                  AppSpacing.sm,
                   AppSpacing.xs,
                 ),
+                child: _isSearchOpen
+                    ? _buildSearchHeader(title)
+                    : _buildDefaultHeader(title),
+              ),
+              const Divider(color: AppColors.border, height: 1),
+
+              // ── Filter Options (All Service, One-Time, Monthly) ─────────────
+              _buildFilterOptions(),
+
+              // ── Active Filter & Results Counter Bar ─────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: 4,
+                ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgSecondary,
-                          border: Border.all(color: AppColors.border),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new_rounded,
-                          size: 16,
+                    Expanded(
+                      child: Text(
+                        _searchQuery.isNotEmpty
+                            ? 'Results for "$_searchQuery"'
+                            : _activeFrequency == 'All'
+                                ? 'All Available Services'
+                                : '$_activeFrequency Services',
+                        style: AppTextStyles.labelMd.copyWith(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      onPressed: () => Navigator.pop(context),
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4, right: 28),
-                        child: Column(
-                          children: [
-                            Text(
-                              title,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.h3.copyWith(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              subtitle,
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTextStyles.bodySm.copyWith(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                                height: 1.3,
-                              ),
-                            ),
-                          ],
-                        ),
+                    Text(
+                      '${_services.length} ${_services.length == 1 ? "service" : "services"}',
+                      style: AppTextStyles.bodySm.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Divider(color: AppColors.border, height: 1),
+              const SizedBox(height: 4),
 
-              // ── Scrollable Body ─────────────────────────────────────────────
+              // ── Scrollable Body with Services List ──────────────────────────
               Expanded(
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.xs,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                  ),
                   children: [
-                    // ── Search & Filter Panel (matching service_category_screen.jsx)
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.bgPrimary,
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                        border: Border.all(color: AppColors.border),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x05000000),
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Search Box Row with Reset Button
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.md),
-                                    border: Border.all(color: AppColors.border),
-                                  ),
-                                  child: TextField(
-                                    controller: _searchController,
-                                    onChanged: _onSearchChanged,
-                                    style: AppTextStyles.bodyMd.copyWith(
-                                      color: AppColors.textPrimary,
-                                      fontSize: 13,
-                                    ),
-                                    decoration: InputDecoration(
-                                      hintText: 'Search services by name...',
-                                      hintStyle: AppTextStyles.bodySm.copyWith(
-                                        color: AppColors.textMuted,
-                                        fontSize: 12,
-                                      ),
-                                      prefixIcon: const Icon(
-                                        Icons.search_rounded,
-                                        color: AppColors.textMuted,
-                                        size: 20,
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 11,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              OutlinedButton.icon(
-                                onPressed: _handleReset,
-                                icon: const Icon(Icons.refresh_rounded, size: 14),
-                                label: const Text('Reset',
-                                    style: TextStyle(fontSize: 12)),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.textSecondary,
-                                  side: const BorderSide(
-                                      color: AppColors.border),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 10,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.md),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-
-                          // Frequency Filter Segment
-                          Text(
-                            'SERVICE TYPE / PLAN',
-                            style: AppTextStyles.labelSm.copyWith(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textMuted,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.md),
-                              border: Border.all(
-                                color: const Color(0xFFE2E8F0),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                _buildFrequencyTab(
-                                  id: 'All',
-                                  label: 'All Services',
-                                  icon: Icons.auto_awesome_rounded,
-                                ),
-                                _buildFrequencyTab(
-                                  id: 'One-Time',
-                                  label: 'One-Time',
-                                  icon: Icons.access_time_rounded,
-                                ),
-                                _buildFrequencyTab(
-                                  id: 'Monthly',
-                                  label: 'Monthly Sub',
-                                  icon: Icons.sell_outlined,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-
-                          // Counter & Category Info Row
-                          const Divider(color: Color(0xFFF1F5F9), height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  'Showing: ${widget.categoryName} • $_activeFrequency',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTextStyles.bodySm.copyWith(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '${_services.length} services found',
-                                style: AppTextStyles.bodySm.copyWith(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // ── Services Cards List ───────────────────────────────────
+                    // Services Cards List
                     if (_isLoading)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 40),
@@ -379,7 +219,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'No Services Found for ${widget.categoryName}',
+                              'No Services Found for $title',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.labelMd.copyWith(
                                 fontSize: 15,
@@ -388,7 +228,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Try changing your search query or switching to All Services tab.',
+                              'Try changing your search query or switching filter options.',
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodySm.copyWith(
                                 color: AppColors.textSecondary,
@@ -441,54 +281,252 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     );
   }
 
-  Widget _buildFrequencyTab({
-    required String id,
-    required String label,
-    required IconData icon,
-  }) {
-    final isSelected = _activeFrequency == id;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _onFrequencyChanged(id),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 7),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            boxShadow: isSelected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x0D000000),
-                      blurRadius: 4,
-                      offset: Offset(0, 1),
-                    ),
-                  ]
-                : null,
+  // ── Header Builders ─────────────────────────────────────────────────────────
+
+  Widget _buildDefaultHeader(String title) {
+    return Row(
+      children: [
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.bgSecondary,
+              border: Border.all(color: AppColors.border),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: AppColors.textPrimary,
+            ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 13,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+          onPressed: () => Navigator.pop(context),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            title,
+            textAlign: TextAlign.left,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.h3.copyWith(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.3,
+            ),
+          ),
+        ),
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.bgSecondary,
+              border: Border.all(color: AppColors.border),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.search_rounded,
+              size: 18,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          onPressed: () {
+            setState(() => _isSearchOpen = true);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchHeader(String title) {
+    return Row(
+      children: [
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.bgSecondary,
+              border: Border.all(color: AppColors.border),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          onPressed: () {
+            setState(() {
+              _isSearchOpen = false;
+              _searchQuery = '';
+              _searchController.clear();
+            });
+            _loadServices();
+          },
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: TextField(
+              controller: _searchController,
+              autofocus: true,
+              onChanged: _onSearchChanged,
+              style: AppTextStyles.bodyMd.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: 13,
               ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+              decoration: InputDecoration(
+                hintText: 'Search $title...',
+                hintStyle: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.textMuted,
+                  size: 18,
+                ),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(
+            Icons.close_rounded,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
+          onPressed: () {
+            setState(() {
+              _isSearchOpen = false;
+              _searchQuery = '';
+              _searchController.clear();
+            });
+            _loadServices();
+          },
+        ),
+      ],
+    );
+  }
+
+  // ── Modern Filter Options Row ───────────────────────────────────────────────
+
+  Widget _buildFilterOptions() {
+    final options = [
+      {
+        'id': 'All',
+        'label': 'All Services',
+        'icon': Icons.auto_awesome_rounded,
+      },
+      {
+        'id': 'One-Time',
+        'label': 'One-Time Service',
+        'icon': Icons.flash_on_rounded,
+      },
+      {
+        'id': 'Monthly',
+        'label': 'Monthly Service',
+        'icon': Icons.calendar_month_rounded,
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: AppColors.bgPrimary,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xs,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: options.map((opt) {
+            final isSelected = _activeFrequency == opt['id'];
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: () => _onFrequencyChanged(opt['id'] as String),
+                borderRadius: BorderRadius.circular(20),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : const Color(0xFFE2E8F0),
+                      width: 1.2,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.22),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : const [
+                            BoxShadow(
+                              color: Color(0x04000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        opt['icon'] as IconData,
+                        size: 13,
+                        color:
+                            isSelected ? Colors.white : AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        opt['label'] as String,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              isSelected ? FontWeight.w700 : FontWeight.w600,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
+            );
+          }).toList(),
         ),
       ),
     );

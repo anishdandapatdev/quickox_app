@@ -69,14 +69,14 @@ void main() {
 
       // Filter tabs
       expect(find.text('All Services'), findsOneWidget);
-      expect(find.text('One-Time'), findsWidgets);
-      expect(find.text('Monthly Sub'), findsWidgets);
+      expect(find.text('One-Time Service'), findsOneWidget);
+      expect(find.text('Monthly Service'), findsOneWidget);
 
       // Cards rendered
       expect(find.text('AC Deep Jet Cleaning & Servicing'), findsWidgets);
 
-      // Tap 'One-Time' filter tab
-      await tester.tap(find.text('One-Time').first);
+      // Tap 'One-Time Service' filter tab
+      await tester.tap(find.text('One-Time Service'));
       await tester.pumpAndSettle();
       expect(find.text('AC Deep Jet Cleaning & Servicing'), findsWidgets);
     });
