@@ -372,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // Horizontal Scrolling Circular Categories
+        // Horizontal Scrolling Circular Categories (Direct on background, White Circles)
         SizedBox(
           height: 104,
           child: ListView.separated(
@@ -1506,7 +1506,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.ac_unit_rounded,
     color: Color(0xFF0284C7),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'Electrical',
@@ -1515,7 +1515,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.bolt_rounded,
     color: Color(0xFFEAB308),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'Plumbing',
@@ -1524,7 +1524,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.plumbing_rounded,
     color: Color(0xFF0D9488),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'RO',
@@ -1533,7 +1533,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.water_drop_rounded,
     color: Color(0xFF2563EB),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'Washing Machine',
@@ -1542,7 +1542,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.local_laundry_service_rounded,
     color: Color(0xFF7C3AED),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'Cleaning',
@@ -1551,7 +1551,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.cleaning_services_rounded,
     color: Color(0xFFEA580C),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'Painting',
@@ -1560,7 +1560,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.format_paint_rounded,
     color: Color(0xFF10B981),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
   _PopularCategoryData(
     id: 'Pest Control',
@@ -1569,7 +1569,7 @@ const List<_PopularCategoryData> _popularCategories = [
     imageUrl: '',
     icon: Icons.bug_report_rounded,
     color: Color(0xFFE11D48),
-    bgColor: Color(0xFFF1F3F6),
+    bgColor: Colors.white,
   ),
 ];
 
@@ -1596,9 +1596,20 @@ class _PopularCategoryCircleItem extends StatelessWidget {
             Container(
               width: 58,
               height: 58,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFFF1F3F6),
+                color: Colors.white,
+                border: Border.all(
+                  color: const Color(0xFFE2E8F0),
+                  width: 1.2,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0E0F172A),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Center(
                 child: Icon(
@@ -1608,20 +1619,23 @@ class _PopularCategoryCircleItem extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: Text(
-                category.title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 11.5,
-                  color: Color(0xFF1E293B),
-                  height: 1.15,
-                  letterSpacing: -0.1,
+              child: SizedBox(
+                height: 30,
+                child: Text(
+                  category.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11.5,
+                    color: Color(0xFF1E293B),
+                    height: 1.15,
+                    letterSpacing: -0.1,
+                  ),
                 ),
               ),
             ),
