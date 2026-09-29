@@ -1,4 +1,4 @@
-package com.example.quickox_technician_app
+package com.app.quickox
 
 import io.flutter.embedding.android.FlutterActivity
 
