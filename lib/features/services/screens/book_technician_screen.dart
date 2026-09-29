@@ -1,8 +1,24 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import 'choose_appointment_slot_screen.dart';
+
+/// Model representing a photo uploaded from camera or gallery
+class UploadedPhotoItem {
+  final String path;
+  final String name;
+  final Uint8List? bytes;
+
+  const UploadedPhotoItem({
+    required this.path,
+    required this.name,
+    this.bytes,
+  });
+}
 
 /// Screen allowing the user to configure and book a technician
 /// matching the user mockup: issue categories grid, issue description,
@@ -26,7 +42,8 @@ class BookTechnicianScreen extends StatefulWidget {
 class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
   int _selectedIssueIndex = 0;
   final TextEditingController _descController = TextEditingController();
-  final List<String> _uploadedPhotos = [];
+  final List<UploadedPhotoItem> _uploadedPhotos = [];
+  final ImagePicker _picker = ImagePicker();
   String _serviceAddress = 'Chas Road, Purulia, West Bengal 723101';
   DateTime _selectedDate = DateTime.now();
 
@@ -331,7 +348,91 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
     }
   }
 
-  void _addPhotoMock() {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      if (_uploadedPhotos.length >= 5) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Maximum 5 photos can be uploaded'),
+            backgroundColor: Color(0xFFD97706),
+          ),
+        );
+        return;
+      }
+
+      final XFile? file = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 1600,
+      );
+
+      if (file != null) {
+        final bytes = await file.readAsBytes();
+        setState(() {
+          _uploadedPhotos.add(UploadedPhotoItem(
+            path: file.path,
+            name: file.name,
+            bytes: bytes,
+          ));
+        });
+      }
+    } catch (e) {
+      debugPrint('[BookTechnicianScreen] Image pick error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not access camera/photos: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickMultiFromGallery() async {
+    try {
+      final remaining = 5 - _uploadedPhotos.length;
+      if (remaining <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Maximum 5 photos can be uploaded'),
+            backgroundColor: Color(0xFFD97706),
+          ),
+        );
+        return;
+      }
+
+      final List<XFile> files = await _picker.pickMultiImage(
+        imageQuality: 80,
+        maxWidth: 1600,
+        limit: remaining,
+      );
+
+      if (files.isNotEmpty) {
+        for (final file in files.take(remaining)) {
+          final bytes = await file.readAsBytes();
+          _uploadedPhotos.add(UploadedPhotoItem(
+            path: file.path,
+            name: file.name,
+            bytes: bytes,
+          ));
+        }
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('[BookTechnicianScreen] Multi-image pick error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not access gallery: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showAddPhotoModal() {
     if (_uploadedPhotos.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -371,18 +472,23 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
                   color: Color(0xFF0F172A),
                 ),
               ),
+              const SizedBox(height: 6),
+              const Text(
+                'Take a photo or choose from your device gallery',
+                style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+              ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const CircleAvatar(
                   backgroundColor: Color(0xFFEFF6FF),
                   child: Icon(Icons.camera_alt_rounded, color: AppColors.primary),
                 ),
-                title: const Text('Take Photo', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text('Take Photo with Camera',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Capture the damaged part directly'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  setState(() {
-                    _uploadedPhotos.add('photo_${_uploadedPhotos.length + 1}.jpg');
-                  });
+                  _pickImage(ImageSource.camera);
                 },
               ),
               ListTile(
@@ -390,12 +496,12 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
                   backgroundColor: Color(0xFFDCFCE7),
                   child: Icon(Icons.photo_library_rounded, color: Color(0xFF16A34A)),
                 ),
-                title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text('Choose from Gallery',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Select photos from your device gallery'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  setState(() {
-                    _uploadedPhotos.add('photo_${_uploadedPhotos.length + 1}.jpg');
-                  });
+                  _pickMultiFromGallery();
                 },
               ),
             ],
@@ -454,7 +560,7 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
           serviceAddress: _serviceAddress,
           selectedIssue: selectedCategory.title,
           issueDesc: _descController.text.trim(),
-          uploadedPhotos: List.from(_uploadedPhotos),
+          uploadedPhotos: _uploadedPhotos.map((p) => p.path).toList(),
           preferredDate: _selectedDate,
           basePrice: widget.basePrice,
         ),
@@ -893,107 +999,187 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '3. Add Photos (Optional)',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              '3. Add Photos (Optional)',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+            Text(
+              '${_uploadedPhotos.length}/5 uploaded',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: _uploadedPhotos.isEmpty
+                    ? const Color(0xFF64748B)
+                    : const Color(0xFF2563EB),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 4),
         const Text(
           'Upload photos of the damaged part, switch, appliance or area to help our technician understand the issue better.',
           style: TextStyle(fontSize: 11, color: Color(0xFF64748B), height: 1.3),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Add Photos Dashed Card
-            GestureDetector(
-              onTap: _addPhotoMock,
-              child: Container(
-                width: 100,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF3B82F6),
-                    width: 1.2,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.camera_alt_outlined,
-                      size: 22,
-                      color: Color(0xFF2563EB),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Add Photos',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF2563EB),
+        // Horizontal list of photo cards + Add button
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              // Add button (only if < 5)
+              if (_uploadedPhotos.length < 5)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: GestureDetector(
+                    onTap: _showAddPhotoModal,
+                    child: Container(
+                      width: 84,
+                      height: 84,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F7FF),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF93C5FD),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_a_photo_rounded,
+                            size: 22,
+                            color: Color(0xFF2563EB),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            '+ Add Photo',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
+
+              // Uploaded Photos
+              ...List.generate(_uploadedPhotos.length, (index) {
+                final photo = _uploadedPhotos[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: _buildPhotoThumbnail(photo, index),
+                );
+              }),
+
+              // Helper message if empty
+              if (_uploadedPhotos.isEmpty)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline_rounded,
+                          size: 15, color: Color(0xFF64748B)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Tap "+ Add Photo" to take or pick photos',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotoThumbnail(UploadedPhotoItem photo, int index) {
+    return Stack(
+      children: [
+        Container(
+          width: 84,
+          height: 84,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFCBD5E1)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 4,
+                offset: Offset(0, 1),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: photo.bytes != null
+              ? Image.memory(
+                  photo.bytes!,
+                  width: 84,
+                  height: 84,
+                  fit: BoxFit.cover,
+                )
+              : (!kIsWeb && File(photo.path).existsSync())
+                  ? Image.file(
+                      File(photo.path),
+                      width: 84,
+                      height: 84,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Icon(Icons.broken_image_rounded,
+                            size: 24, color: Color(0xFF94A3B8)),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(Icons.image_rounded,
+                          size: 26, color: Color(0xFF2563EB)),
+                    ),
+        ),
+        // Remove button
+        Positioned(
+          top: 4,
+          right: 4,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                _uploadedPhotos.removeAt(index);
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(3),
+              decoration: const BoxDecoration(
+                color: Color(0xCC0F172A),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close_rounded,
+                size: 13,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(width: 12),
-
-            // Chips or Helper text
-            Expanded(
-              child: _uploadedPhotos.isEmpty
-                  ? const Text(
-                      'You can add up to 5 photos',
-                      style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
-                    )
-                  : Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: _uploadedPhotos.map((p) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFEFF6FF),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFBFDBFE)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.image_rounded,
-                                size: 12,
-                                color: Color(0xFF2563EB),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                p,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Color(0xFF1E3A8A),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-            ),
-          ],
+          ),
         ),
       ],
     );

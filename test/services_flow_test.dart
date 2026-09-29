@@ -222,6 +222,11 @@ void main() {
 
       // Back button uses AppBackButton
       expect(find.byType(AppBackButton), findsOneWidget);
+
+      // Add photos section rendered with real + Add Photo button and counter
+      expect(find.text('3. Add Photos (Optional)'), findsOneWidget);
+      expect(find.text('+ Add Photo'), findsOneWidget);
+      expect(find.text('0/5 uploaded'), findsOneWidget);
     });
 
     testWidgets('ChooseAppointmentSlotScreen renders Razorpay option, summary and doorstep booking', (WidgetTester tester) async {
