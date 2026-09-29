@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bgSecondary,
+      backgroundColor: const Color(0xFFF3F5F9),
       appBar: AppBar(
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
@@ -268,22 +268,43 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
 
-        // Horizontal Row of 4 Circular Services
+        // Horizontal Row of 4 Circular Services in an Elevated White Card Box
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: top4.map((vert) {
-              return _ServiceCircleItem(
-                title: vert.name,
-                imageUrl: vert.imageUrl,
-                icon: vert.icon,
-                color: vert.color,
-                bgColor: vert.bgColor,
-                onTap: () => _onVerticalTapped(vert),
-              );
-            }).toList(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: const Color(0xFFEEF2F6),
+                width: 1,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0C0F172A),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: top4.map((vert) {
+                return Expanded(
+                  child: _ServiceCircleItem(
+                    title: vert.name,
+                    imageUrl: vert.imageUrl,
+                    icon: vert.icon,
+                    color: vert.color,
+                    bgColor: vert.bgColor,
+                    onTap: () => _onVerticalTapped(vert),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
         ),
       ],
@@ -1381,63 +1402,64 @@ class _ServiceCircleItem extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: SizedBox(
-        width: 76,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: bgColor,
-                border: Border.all(
-                  color: color.withValues(alpha: 0.22),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.12),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 62,
+            height: 62,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFFF1F3F6),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 42,
+                height: 42,
+                child: _buildImageOrIcon(),
               ),
-              child: ClipOval(
-                child: Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: _buildImageOrIcon(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: SizedBox(
+              height: 32,
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  color: Color(0xFF1E293B),
+                  height: 1.2,
+                  letterSpacing: -0.1,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelMd.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                color: AppColors.textPrimary,
-                height: 1.2,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildImageOrIcon() {
     if (imageUrl.startsWith('assets/')) {
-      return Image.asset(
-        imageUrl,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            Icon(icon, color: color, size: 28),
+      final double scale =
+          (imageUrl.contains('home_service') || imageUrl.contains('medicine'))
+              ? 1.18
+              : 1.0;
+      return Transform.scale(
+        scale: scale,
+        child: Image.asset(
+          imageUrl,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              Icon(icon, color: color, size: 28),
+        ),
       );
     }
     if (imageUrl.startsWith('http')) {
@@ -1481,73 +1503,73 @@ const List<_PopularCategoryData> _popularCategories = [
     id: 'AC',
     title: 'AC Service',
     desc: 'Deep jet wash, cooling coil sanitization & gas refill',
-    imageUrl: 'assets/images/ac.png',
+    imageUrl: '',
     icon: Icons.ac_unit_rounded,
     color: Color(0xFF0284C7),
-    bgColor: Color(0xFFE0F2FE),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'Electrical',
     title: 'Electrical',
     desc: 'Switchboard restoration, home wiring & short circuit fix',
-    imageUrl: 'assets/images/electrician.png',
+    imageUrl: '',
     icon: Icons.bolt_rounded,
-    color: Color(0xFF2563EB),
-    bgColor: Color(0xFFEFF6FF),
+    color: Color(0xFFEAB308),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'Plumbing',
     title: 'Plumbing',
     desc: 'Pipe leakages, taps, basin repair & drainage unblock',
-    imageUrl: 'assets/images/plumbing.png',
+    imageUrl: '',
     icon: Icons.plumbing_rounded,
     color: Color(0xFF0D9488),
-    bgColor: Color(0xFFF0FDFA),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'RO',
     title: 'RO Purifier',
     desc: 'Sediment filter, carbon block, RO membrane & TDS balance',
-    imageUrl: 'assets/images/ro.png',
+    imageUrl: '',
     icon: Icons.water_drop_rounded,
-    color: Color(0xFF0284C7),
-    bgColor: Color(0xFFF0F9FF),
+    color: Color(0xFF2563EB),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'Washing Machine',
     title: 'Washing Machine',
     desc: 'Drum spin balance, drain valve & motor repair',
-    imageUrl: 'assets/images/technician_avatar.jpg',
+    imageUrl: '',
     icon: Icons.local_laundry_service_rounded,
     color: Color(0xFF7C3AED),
-    bgColor: Color(0xFFF5F3FF),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'Cleaning',
     title: 'Deep Cleaning',
     desc: 'Kitchen, bathroom, sofa & full home sanitization',
-    imageUrl: 'assets/images/refrigerator_technician.jpg',
+    imageUrl: '',
     icon: Icons.cleaning_services_rounded,
     color: Color(0xFFEA580C),
-    bgColor: Color(0xFFFFF7ED),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'Painting',
     title: 'Painting',
     desc: 'Wall putty, waterproof primer & premium emulsion paint',
-    imageUrl: 'assets/images/products/solar_junction_box.jpg',
+    imageUrl: '',
     icon: Icons.format_paint_rounded,
     color: Color(0xFF10B981),
-    bgColor: Color(0xFFECFDF5),
+    bgColor: Color(0xFFF1F3F6),
   ),
   _PopularCategoryData(
     id: 'Pest Control',
     title: 'Pest Control',
     desc: 'Herbal odorless gel for cockroaches, termites & bugs',
-    imageUrl: 'assets/images/products/fan_capacitor.jpg',
+    imageUrl: '',
     icon: Icons.bug_report_rounded,
     color: Color(0xFFE11D48),
-    bgColor: Color(0xFFFFF1F2),
+    bgColor: Color(0xFFF1F3F6),
   ),
 ];
 
@@ -1566,7 +1588,7 @@ class _PopularCategoryCircleItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
-        width: 68,
+        width: 66,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -1574,65 +1596,39 @@ class _PopularCategoryCircleItem extends StatelessWidget {
             Container(
               width: 58,
               height: 58,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: category.bgColor,
-                border: Border.all(
-                  color: category.color.withValues(alpha: 0.2),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: category.color.withValues(alpha: 0.1),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: Color(0xFFF1F3F6),
               ),
-              child: ClipOval(
-                child: Padding(
-                  padding: const EdgeInsets.all(9.0),
-                  child: _buildImageOrIcon(),
+              child: Center(
+                child: Icon(
+                  category.icon,
+                  color: category.color,
+                  size: 26,
                 ),
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              category.title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.labelMd.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 11.5,
-                color: AppColors.textPrimary,
-                height: 1.15,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                category.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11.5,
+                  color: Color(0xFF1E293B),
+                  height: 1.15,
+                  letterSpacing: -0.1,
+                ),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Widget _buildImageOrIcon() {
-    if (category.imageUrl.startsWith('assets/')) {
-      return Image.asset(
-        category.imageUrl,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            Icon(category.icon, color: category.color, size: 24),
-      );
-    }
-    if (category.imageUrl.startsWith('http')) {
-      return Image.network(
-        category.imageUrl,
-        fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) =>
-            Icon(category.icon, color: category.color, size: 24),
-      );
-    }
-    return Icon(category.icon, color: category.color, size: 24);
   }
 }
 
