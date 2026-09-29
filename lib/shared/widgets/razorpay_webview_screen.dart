@@ -17,8 +17,8 @@ class RazorpayWebViewScreen extends StatefulWidget {
     required this.title,
     this.subtitle,
     this.customerName = 'Quickox Customer',
-    this.customerEmail = 'customer@quickox.in',
-    this.customerPhone = '+91 98765 43210',
+    this.customerEmail = '',
+    this.customerPhone = '',
     this.referralCode,
     this.planId,
     this.planAmount,
@@ -47,8 +47,8 @@ class RazorpayWebViewScreen extends StatefulWidget {
     required String title,
     String? subtitle,
     String customerName = 'Quickox Customer',
-    String customerEmail = 'customer@quickox.in',
-    String customerPhone = '+91 98765 43210',
+    String customerEmail = '',
+    String customerPhone = '',
     String? referralCode,
     String? planId,
     double? planAmount,
@@ -113,26 +113,37 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
     }
 
     try {
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _hasWebViewError = false;
+          _errorMessage = null;
+        });
+      }
+
       // 1. Fetch Razorpay Order from backend API (or direct mode fallback)
       final orderRes = await _paymentService.createRazorpayOrder(
         amount: widget.amount,
         referenceType: widget.referenceType,
         referenceId: widget.referenceId,
         referralCode: widget.referralCode,
+        userId: widget.userFirebaseUid,
       );
 
       _orderId = orderRes['razorpay_order_id'] as String?;
       _keyId = orderRes['key_id'] as String? ??
           BookingPaymentService.razorpayLiveKeyId;
 
-      // 2. Build HTML with Razorpay Checkout.js
+      debugPrint('[RazorpayWebView] Launching with Key: $_keyId, Order: $_orderId, Amount: ₹${widget.amount}');
+
+      // 2. Build HTML with official Razorpay Checkout.js
       final checkoutHtml = _generateRazorpayHtml(
         keyId: _keyId!,
         orderId: _orderId,
         amountPaise: ((widget.amount) * 100).toInt(),
       );
 
-      // 3. Initialize WebViewController safely (with fallback for test runners)
+      // 3. Initialize WebViewController safely
       try {
         final controller = WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -160,9 +171,21 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
                     _loadingProgress = 1.0;
                   });
                 }
+                // Trigger checkout open immediately once page is loaded
+                _webViewController?.runJavaScript(
+                  'if (typeof openRazorpay === "function") { openRazorpay(); }',
+                );
               },
               onWebResourceError: (WebResourceError error) {
-                debugPrint('[RazorpayWebView] WebResourceError: ${error.description}');
+                debugPrint('[RazorpayWebView] WebResourceError: ${error.description} url: ${error.url}');
+              },
+              onNavigationRequest: (NavigationRequest request) {
+                final url = request.url;
+                if (url.startsWith('https://') || url.startsWith('http://')) {
+                  return NavigationDecision.navigate;
+                }
+                debugPrint('[RazorpayWebView] External URL requested: $url');
+                return NavigationDecision.prevent;
               },
             ),
           );
@@ -178,17 +201,20 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
           });
         }
       } catch (webViewInitError) {
-        debugPrint('[RazorpayWebView] Platform WebView notice (using direct mode): $webViewInitError');
+        debugPrint('[RazorpayWebView] Platform WebView initialization notice: $webViewInitError');
         if (mounted) {
           setState(() {
             _hasWebViewError = true;
+            _errorMessage = 'WebView initialization failed: $webViewInitError';
             _isLoading = false;
           });
         }
       }
     } catch (e) {
+      debugPrint('[RazorpayWebView] Checkout initialization error: $e');
       if (mounted) {
         setState(() {
+          _hasWebViewError = true;
           _errorMessage = e.toString();
           _isLoading = false;
         });
@@ -283,7 +309,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
     );
   }
 
-  /// Direct simulator fallback for headless test runners or offline dev
+  /// Headless test simulator used only when running unit tests
   void _simulateTestPayment() async {
     final paymentId =
         'pay_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(900) + 100}';
@@ -301,10 +327,35 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
     String? orderId,
     required int amountPaise,
   }) {
-    final safeTitle = widget.title.replaceAll("'", "\\'");
-    final safeName = widget.customerName.replaceAll("'", "\\'");
-    final safeEmail = widget.customerEmail.replaceAll("'", "\\'");
-    final safePhone = widget.customerPhone.replaceAll("'", "\\'");
+    final safeTitle = widget.title.replaceAll("'", "\\'").replaceAll('"', '\\"');
+    final safeName = widget.customerName.replaceAll("'", "\\'").replaceAll('"', '\\"');
+
+    // Clean phone number: must be valid 10 digits and not the placeholder test number
+    final rawPhone = widget.customerPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    final tenDigitPhone = rawPhone.length > 10 ? rawPhone.substring(rawPhone.length - 10) : rawPhone;
+    final isValidPhone = tenDigitPhone.length == 10 &&
+        RegExp(r'^[6-9]\d{9}$').hasMatch(tenDigitPhone) &&
+        !tenDigitPhone.startsWith('9876543210');
+
+    // Clean email: avoid placeholders
+    final rawEmail = widget.customerEmail.trim();
+    final isValidEmail = rawEmail.contains('@') &&
+        !rawEmail.contains('customer@quickox.com') &&
+        !rawEmail.contains('example.com') &&
+        !rawEmail.contains('customer@quickox.in');
+
+    final prefillEntries = <String>[];
+    if (safeName.isNotEmpty) {
+      prefillEntries.add('name: "$safeName"');
+    }
+    if (isValidEmail) {
+      prefillEntries.add('email: "${rawEmail.replaceAll('"', '\\"')}"');
+    }
+    if (isValidPhone) {
+      prefillEntries.add('contact: "$tenDigitPhone"');
+    }
+    final prefillBlock = prefillEntries.join(',\n        ');
+
     final orderIdLine = (orderId != null && orderId.isNotEmpty)
         ? 'order_id: "$orderId",'
         : '';
@@ -315,10 +366,9 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Quickox Razorpay Checkout</title>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
+    html, body {
       background: #0C2340;
       color: #FFFFFF;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -327,24 +377,20 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 24px;
       text-align: center;
+      overflow: hidden;
     }
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 24px;
-      width: 100%;
-      max-width: 360px;
+    .spinner-wrap {
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 16px;
+      padding: 24px;
     }
     .spinner {
-      width: 44px;
-      height: 44px;
+      width: 46px;
+      height: 46px;
       border: 3.5px solid rgba(255, 255, 255, 0.15);
       border-top-color: #2563EB;
       border-radius: 50%;
@@ -353,37 +399,14 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
-    .amount {
-      font-size: 28px;
-      font-weight: 800;
-      color: #60A5FA;
-    }
-    .desc {
-      font-size: 13px;
-      color: #94A3B8;
-      line-height: 1.4;
-    }
-    .btn {
-      background: #2563EB;
-      color: #FFFFFF;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 30px;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      width: 100%;
-    }
   </style>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
-  <div class="card">
+  <div class="spinner-wrap" id="loadingBox">
     <div class="spinner"></div>
-    <div style="font-weight: 700; font-size: 16px;">Quickox Secure Payment</div>
-    <div class="amount">₹${widget.amount.toStringAsFixed(2)}</div>
-    <div class="desc">$safeTitle</div>
-    <div style="font-size: 11px; color: #64748B;">Launching Razorpay checkout modal...</div>
-    <button class="btn" id="openBtn" onclick="openRazorpay()">Click here if modal didn't open</button>
+    <div style="font-weight: 700; font-size: 16px; color: #FFFFFF;">Opening Razorpay Checkout...</div>
+    <div style="font-size: 12px; color: #94A3B8;">Connecting to 256-bit secure gateway</div>
   </div>
 
   <script>
@@ -396,9 +419,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
       image: "https://raw.githubusercontent.com/anishdandapatdev/home_service/main/home_service_web/public/icon_logo.jpeg",
       $orderIdLine
       prefill: {
-        name: "$safeName",
-        email: "$safeEmail",
-        contact: "$safePhone"
+        $prefillBlock
       },
       notes: {
         reference_type: "${widget.referenceType}",
@@ -432,8 +453,13 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
     };
 
     let rzpInstance = null;
+    let isOpen = false;
 
     function openRazorpay() {
+      if (isOpen) return true;
+      if (typeof Razorpay === 'undefined') {
+        return false;
+      }
       try {
         if (!rzpInstance) {
           rzpInstance = new Razorpay(options);
@@ -441,21 +467,37 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
             if (window.RazorpayFlutterChannel) {
               window.RazorpayFlutterChannel.postMessage(JSON.stringify({
                 status: "failed",
-                description: resp.error.description,
-                reason: resp.error.reason
+                description: (resp && resp.error && resp.error.description) || "Payment failed",
+                reason: (resp && resp.error && resp.error.reason) || ""
               }));
             }
           });
         }
         rzpInstance.open();
+        isOpen = true;
+        const box = document.getElementById('loadingBox');
+        if (box) box.style.display = 'none';
+        return true;
       } catch (err) {
         console.error("Razorpay open error: ", err);
+        return false;
       }
     }
 
-    window.onload = function() {
-      setTimeout(openRazorpay, 300);
-    };
+    // Try immediately on script evaluation
+    openRazorpay();
+
+    // Polling retry every 80ms until Razorpay object exists and modal opens
+    let retryCount = 0;
+    const pollTimer = setInterval(function() {
+      retryCount++;
+      if (openRazorpay() || retryCount > 50) {
+        clearInterval(pollTimer);
+      }
+    }, 80);
+
+    window.addEventListener('DOMContentLoaded', openRazorpay);
+    window.addEventListener('load', openRazorpay);
   </script>
 </body>
 </html>
@@ -533,13 +575,19 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
         ),
         body: Stack(
           children: [
-            // ── 1. WebView Widget or Direct Fallback ──────────────────────────
+            // ── 1. WebView Widget ─────────────────────────────────────────────
             if (_webViewController != null && !_hasWebViewError)
-              WebViewWidget(controller: _webViewController!)
-            else
-              _buildDirectFallbackView(),
+              WebViewWidget(controller: _webViewController!),
 
-            // ── 2. Progress Indicator ─────────────────────────────────────────
+            // ── 2. Connecting State (Order Creation on Backend) ───────────────
+            if (_webViewController == null && !_hasWebViewError)
+              _buildConnectingView(),
+
+            // ── 3. Fatal Error View with Retry (No dummy simulation) ──────────
+            if (_hasWebViewError)
+              _buildFatalErrorView(),
+
+            // ── 4. Top Progress Indicator ─────────────────────────────────────
             if (_isLoading && !_hasWebViewError)
               Positioned(
                 top: 0,
@@ -553,43 +601,68 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
                 ),
               ),
 
-            // ── 3. Server Verification Overlay ────────────────────────────────
+            // ── 5. Server Verification Overlay ────────────────────────────────
             if (_isVerifying)
-              Container(
-                color: Colors.black.withValues(alpha: 0.85),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: AppColors.primary),
-                      SizedBox(height: 16),
-                      Text(
-                        'Verifying Payment Signature with Backend...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Confirming HMAC-SHA256 & activating records',
-                        style: TextStyle(
-                          color: Color(0xFF94A3B8),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              _buildVerifyingOverlay(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDirectFallbackView() {
+  Widget _buildConnectingView() {
+    return Container(
+      color: const Color(0xFF0C2340),
+      width: double.infinity,
+      height: double.infinity,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 44,
+              height: 44,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Connecting to Razorpay...',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Initializing secure checkout for ₹${widget.amount.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF94A3B8),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.lock_rounded, color: Color(0xFF10B981), size: 14),
+                SizedBox(width: 5),
+                Text(
+                  '256-Bit SSL Encrypted • Real-time Order',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFatalErrorView() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -604,63 +677,39 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                  color: AppColors.error.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.payment_rounded,
-                  color: Color(0xFF60A5FA),
-                  size: 30,
+                  Icons.error_outline_rounded,
+                  color: AppColors.error,
+                  size: 28,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              Text(
-                widget.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
+              const Text(
+                'Unable to Launch Checkout',
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
-                'Payable: ₹${widget.amount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF60A5FA),
-                ),
+                _errorMessage ?? 'Network or payment gateway connection failed.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              const Text(
-                'Live Gateway • Powered by Razorpay',
-                style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-              ),
-              if (_orderId != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  'Order ID: $_orderId',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                ),
-              ],
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 6),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFFEF4444)),
-                  textAlign: TextAlign.center,
-                ),
-              ],
               const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.lock_rounded, size: 18),
-                  label: Text('Simulate Razorpay Payment (₹${widget.amount.toInt()})'),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry Connection'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
@@ -669,7 +718,15 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: _simulateTestPayment,
+                  onPressed: () {
+                    setState(() {
+                      _hasWebViewError = false;
+                      _errorMessage = null;
+                      _isLoading = true;
+                      _webViewController = null;
+                    });
+                    _initializeRazorpayCheckout();
+                  },
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
@@ -679,7 +736,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
                     context,
                     const RazorpayPaymentResult(
                       isSuccess: false,
-                      errorMessage: 'Payment cancelled',
+                      errorMessage: 'Payment cancelled by user',
                     ),
                   );
                 },
@@ -690,6 +747,37 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerifyingOverlay() {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.85),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(color: AppColors.primary),
+            SizedBox(height: 16),
+            Text(
+              'Verifying Payment Signature with Backend...',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Confirming HMAC-SHA256 & activating records',
+              style: TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
     );

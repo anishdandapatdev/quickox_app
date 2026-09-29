@@ -208,8 +208,8 @@ class _ChooseAppointmentSlotScreenState
 
     final user = AuthService.instance.currentUser;
     final customerName = user?.displayName.isNotEmpty == true ? user!.displayName : 'Quickox Customer';
-    final customerEmail = user?.email.isNotEmpty == true ? user!.email : 'customer@quickox.com';
-    final customerPhone = user?.phone?.isNotEmpty == true ? user!.phone! : '+91 9876543210';
+    final customerEmail = user?.email.isNotEmpty == true ? user!.email : '';
+    final customerPhone = user?.phone?.isNotEmpty == true ? user!.phone! : '';
     final userUid = user?.id;
 
     final result = await RazorpayWebViewScreen.open(
@@ -268,7 +268,9 @@ class _ChooseAppointmentSlotScreenState
       );
     } else if (result != null &&
         result.errorMessage != null &&
-        !result.isSuccess) {
+        !result.isSuccess &&
+        result.errorMessage != 'Payment cancelled by user' &&
+        result.errorMessage != 'Payment cancelled') {
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(

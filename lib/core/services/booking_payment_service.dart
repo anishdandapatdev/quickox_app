@@ -51,9 +51,16 @@ class BookingPaymentService {
     String? referralCode,
     String? userId,
   }) async {
-    final targetUrls = [productionBackendUrl, backendBaseUrl, backendEmulatorUrl];
+    // 1. Prioritize production Render backend with generous timeout for cold starts
+    final targetConfigs = [
+      {'url': productionBackendUrl, 'timeout': const Duration(seconds: 15)},
+      {'url': backendBaseUrl, 'timeout': const Duration(seconds: 2)},
+      {'url': backendEmulatorUrl, 'timeout': const Duration(seconds: 2)},
+    ];
 
-    for (final base in targetUrls) {
+    for (final cfg in targetConfigs) {
+      final base = cfg['url'] as String;
+      final timeout = cfg['timeout'] as Duration;
       try {
         final uri = Uri.parse('$base/payments/razorpay/order');
         final res = await _client.post(
@@ -63,10 +70,12 @@ class BookingPaymentService {
             'amount': amount,
             'reference_type': referenceType,
             'reference_id': referenceId,
-            'referral_code': ?referralCode,
-            'user_id': ?userId,
+            if (referralCode != null && referralCode.isNotEmpty)
+              'referral_code': referralCode,
+            if (userId != null && userId.isNotEmpty)
+              'user_id': userId,
           }),
-        ).timeout(const Duration(seconds: 4));
+        ).timeout(timeout);
 
         if (res.statusCode == 200 || res.statusCode == 201) {
           final data = jsonDecode(res.body);
@@ -78,6 +87,8 @@ class BookingPaymentService {
             'amount': data['amount'] ?? (amount * 100).toInt(),
             'currency': data['currency'] ?? 'INR',
           };
+        } else {
+          debugPrint('[BookingPaymentService] Backend order failed ($base): ${res.statusCode} ${res.body}');
         }
       } catch (err) {
         debugPrint('[BookingPaymentService] Notice connecting to $base: $err');
@@ -105,9 +116,15 @@ class BookingPaymentService {
     String? planId,
     double? planAmount,
   }) async {
-    final targetUrls = [productionBackendUrl, backendBaseUrl, backendEmulatorUrl];
+    final targetConfigs = [
+      {'url': productionBackendUrl, 'timeout': const Duration(seconds: 12)},
+      {'url': backendBaseUrl, 'timeout': const Duration(seconds: 2)},
+      {'url': backendEmulatorUrl, 'timeout': const Duration(seconds: 2)},
+    ];
 
-    for (final base in targetUrls) {
+    for (final cfg in targetConfigs) {
+      final base = cfg['url'] as String;
+      final timeout = cfg['timeout'] as Duration;
       try {
         final uri = Uri.parse('$base/payments/razorpay/verify');
         final res = await _client.post(
@@ -117,12 +134,15 @@ class BookingPaymentService {
             'razorpay_order_id': orderId,
             'razorpay_payment_id': paymentId,
             'razorpay_signature': signature,
-            'user_firebase_uid': ?userFirebaseUid,
-            'referral_code': ?referralCode,
-            'plan_id': ?planId,
+            if (userFirebaseUid != null && userFirebaseUid.isNotEmpty)
+              'user_firebase_uid': userFirebaseUid,
+            if (referralCode != null && referralCode.isNotEmpty)
+              'referral_code': referralCode,
+            if (planId != null && planId.isNotEmpty)
+              'plan_id': planId,
             'plan_amount': ?planAmount,
           }),
-        ).timeout(const Duration(seconds: 3));
+        ).timeout(timeout);
 
         if (res.statusCode == 200 || res.statusCode == 201) {
           debugPrint('[BookingPaymentService] Backend payment verification succeeded via $base');
