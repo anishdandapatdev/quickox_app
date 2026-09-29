@@ -464,7 +464,9 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: options.map((opt) {
+          children: [
+            const SizedBox(width: 16),
+            ...options.map((opt) {
             final isSelected = _activeFrequency == opt['id'];
             final iconColor = isSelected
                 ? Colors.white
@@ -531,11 +533,12 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                 ),
               ),
             );
-          }).toList(),
-        ),
+          }),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ── Private Service Grid Card (matching service_category_screen.jsx) ─────────
