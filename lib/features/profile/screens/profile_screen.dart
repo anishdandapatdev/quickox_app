@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../bookings/screens/bookings_screen.dart';
@@ -124,19 +125,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Account deletion request has been submitted.'),
-                  backgroundColor: Color(0xFFEF4444),
-                ),
-              );
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
+              await AuthService.instance.logout();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Account deletion request has been submitted.'),
+                    backgroundColor: Color(0xFFEF4444),
+                  ),
+                );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
             child: const Text('Delete Account'),
           ),
@@ -176,13 +180,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginScreen()),
-                (route) => false,
-              );
+              await AuthService.instance.logout();
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
             },
             child: const Text('Log Out'),
           ),
@@ -242,107 +249,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    Stack(
-                      alignment: Alignment.bottomRight,
+                child: Builder(
+                  builder: (context) {
+                    final user = AuthService.instance.currentUser;
+                    return Row(
                       children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                          child: const Text(
-                            'RS',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: AppColors.success,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check,
-                            size: 10,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Flexible(
-                                child: Text(
-                                  'Rahul Sharma',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF18181B),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                        Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                              child: Text(
+                                user?.initials ?? 'RS',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primary,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'PRO',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: AppColors.success,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                size: 10,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      user?.displayName ?? 'Rahul Sharma',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF18181B),
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
+                                  const SizedBox(width: 6),
+                                  if (user?.isGoogleUser == true) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE8F0FE),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: const Color(0xFFD2E3FC),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Image.asset(
+                                            AppAssets.google,
+                                            width: 11,
+                                            height: 11,
+                                            errorBuilder: (_, _, _) => const Icon(
+                                              Icons.g_mobiledata,
+                                              size: 11,
+                                              color: Color(0xFF4285F4),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 3),
+                                          const Text(
+                                            'Google',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF1A73E8),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'PRO',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                user?.email ?? 'rahul.sharma@gmail.com',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF71717A),
                                 ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                user?.phone ?? '+91 98765 43210',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF18181B),
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'rahul.sharma@gmail.com',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF71717A),
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit_outlined,
+                            color: AppColors.primary,
+                            size: 20,
                           ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            '+91 98765 43210',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF18181B),
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
-                      onPressed: () => _showInfoSnackBar('Edit profile info'),
-                    ),
-                  ],
+                          onPressed: () => _showInfoSnackBar('Edit profile info'),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),

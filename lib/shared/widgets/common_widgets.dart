@@ -139,13 +139,17 @@ class SocialLoginButton extends StatelessWidget {
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   icon,
                   const SizedBox(width: AppSpacing.sm),
-                  Text(
-                    label,
-                    style: AppTextStyles.labelMd
-                        .copyWith(color: AppColors.textPrimary),
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: AppTextStyles.labelMd
+                          .copyWith(color: AppColors.textPrimary),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),

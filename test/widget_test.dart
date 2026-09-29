@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:quickox_technician_app/core/services/auth_service.dart';
 import 'package:quickox_technician_app/core/theme/app_theme.dart';
 import 'package:quickox_technician_app/features/auth/screens/login_screen.dart';
 import 'package:quickox_technician_app/features/auth/screens/otp_verification_screen.dart';
@@ -18,6 +19,9 @@ import 'package:quickox_technician_app/features/services/screens/shop_parts_scre
 import 'package:quickox_technician_app/main.dart';
 
 void main() {
+  setUp(() {
+    AuthService.instance.resetSession();
+  });
   testWidgets('QuickoxApp smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const QuickoxApp());
     expect(find.byType(QuickoxApp), findsOneWidget);
@@ -154,6 +158,12 @@ void main() {
     expect(googleBtn, findsOneWidget);
     await tester.ensureVisible(googleBtn);
     await tester.tap(googleBtn);
+    await tester.pumpAndSettle();
+
+    // Choose Google account from GoogleAccountPickerModal
+    final accountFinder = find.text('rahul.sharma@gmail.com');
+    expect(accountFinder, findsOneWidget);
+    await tester.tap(accountFinder);
     await tester.pump();
 
     // Verify it does NOT navigate to OtpVerificationScreen
@@ -181,6 +191,12 @@ void main() {
     expect(googleBtn, findsOneWidget);
     await tester.ensureVisible(googleBtn);
     await tester.tap(googleBtn);
+    await tester.pumpAndSettle();
+
+    // Choose Google account from GoogleAccountPickerModal
+    final accountFinder = find.text('rahul.sharma@gmail.com');
+    expect(accountFinder, findsOneWidget);
+    await tester.tap(accountFinder);
     await tester.pump();
 
     // Verify it does NOT navigate to OtpVerificationScreen
@@ -193,6 +209,94 @@ void main() {
     // Verify user is directly in MainNavigationScreen
     expect(find.byType(MainNavigationScreen), findsOneWidget);
     expect(find.byType(OtpVerificationScreen), findsNothing);
+  });
+
+  testWidgets('LoginScreen Continue with Google with new account navigates to ProfileSetupScreen, then home after setup', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: LoginScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap Continue with Google
+    final googleBtn = find.text('Continue with Google');
+    expect(googleBtn, findsOneWidget);
+    await tester.ensureVisible(googleBtn);
+    await tester.tap(googleBtn);
+    await tester.pumpAndSettle();
+
+    // Choose Google account for Anish Kumar (new email not yet registered)
+    final accountFinder = find.text('anish.quickox@gmail.com');
+    expect(accountFinder, findsOneWidget);
+    await tester.tap(accountFinder);
+    await tester.pump();
+
+    // Let authentication delay complete
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    // Verify user is navigated to ProfileSetupScreen
+    expect(find.byType(ProfileSetupScreen), findsOneWidget);
+    expect(find.byType(MainNavigationScreen), findsNothing);
+
+    // Verify name and email are pre-filled
+    expect(find.text('Anish Kumar'), findsOneWidget);
+    expect(find.text('anish.quickox@gmail.com'), findsOneWidget);
+
+    // Scroll down to complete button and tap it
+    final completeBtn = find.text('Complete & Get Started');
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(completeBtn);
+    await tester.pumpAndSettle();
+
+    // Verify user is now on MainNavigationScreen
+    expect(find.byType(MainNavigationScreen), findsOneWidget);
+  });
+
+  testWidgets('SignUpScreen Continue with Google with new account navigates to ProfileSetupScreen, then home after setup', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SignUpScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap Continue with Google
+    final googleBtn = find.text('Continue with Google');
+    expect(googleBtn, findsOneWidget);
+    await tester.ensureVisible(googleBtn);
+    await tester.tap(googleBtn);
+    await tester.pumpAndSettle();
+
+    // Choose Google account for Anish Kumar
+    final accountFinder = find.text('anish.quickox@gmail.com');
+    expect(accountFinder, findsOneWidget);
+    await tester.tap(accountFinder);
+    await tester.pump();
+
+    // Let authentication delay complete
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pumpAndSettle();
+
+    // Verify user is navigated to ProfileSetupScreen
+    expect(find.byType(ProfileSetupScreen), findsOneWidget);
+    expect(find.byType(MainNavigationScreen), findsNothing);
+
+    // Verify name and email are pre-filled
+    expect(find.text('Anish Kumar'), findsOneWidget);
+    expect(find.text('anish.quickox@gmail.com'), findsOneWidget);
+
+    // Scroll down to complete button and tap it
+    final completeBtn = find.text('Complete & Get Started');
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await tester.tap(completeBtn);
+    await tester.pumpAndSettle();
+
+    // Verify user is now on MainNavigationScreen
+    expect(find.byType(MainNavigationScreen), findsOneWidget);
   });
 
   testWidgets('OtpVerificationScreen renders elements matching design mockup', (WidgetTester tester) async {

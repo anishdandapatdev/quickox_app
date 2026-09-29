@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../../navigation/main_navigation_screen.dart';
 import '../widgets/rounded_text_input.dart';
 
-/// User Profile Setup Screen after OTP verification
+/// User Profile Setup Screen after OTP verification or Google Sign-In
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({
     super.key,
-    required this.phoneNumber,
+    this.phoneNumber = '',
+    this.initialName,
+    this.initialEmail,
   });
 
   final String phoneNumber;
+  final String? initialName;
+  final String? initialEmail;
 
   @override
   State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
@@ -21,11 +26,23 @@ class ProfileSetupScreen extends StatefulWidget {
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _locationController = TextEditingController(text: 'Haldia Central, WB');
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _locationController;
 
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthService.instance.currentUser;
+    final defaultName = widget.initialName ?? user?.displayName ?? '';
+    final defaultEmail = widget.initialEmail ?? user?.email ?? '';
+
+    _nameController = TextEditingController(text: defaultName);
+    _emailController = TextEditingController(text: defaultEmail);
+    _locationController = TextEditingController(text: 'Haldia Central, WB');
+  }
 
   @override
   void dispose() {
@@ -53,11 +70,40 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     setState(() => _isLoading = true);
 
-    // Simulate saving profile to backend / Firestore
-    await Future.delayed(const Duration(seconds: 1));
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final location = _locationController.text.trim();
+
+    // Complete setup in AuthService (updates current user, marks email as registered, syncs with Firestore)
+    await AuthService.instance.completeProfileSetup(
+      displayName: name,
+      email: email,
+      phone: widget.phoneNumber.isNotEmpty ? widget.phoneNumber : null,
+      location: location,
+    );
 
     if (!mounted) return;
     setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Profile setup complete! Welcome, $name.',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF1F1F1F),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
 
     // Navigate to Main Screen with 5 bottom navigation tabs
     Navigator.pushAndRemoveUntil(
@@ -103,11 +149,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     CircleAvatar(
                       radius: 46,
                       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 52,
-                        color: AppColors.primary,
-                      ),
+                      child: AuthService.instance.currentUser != null
+                          ? Text(
+                              AuthService.instance.currentUser!.initials,
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.person_rounded,
+                              size: 52,
+                              color: AppColors.primary,
+                            ),
                     ),
                     Container(
                       padding: const EdgeInsets.all(6),

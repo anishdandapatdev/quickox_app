@@ -6,11 +6,19 @@ import '../../../shared/widgets/common_widgets.dart';
 import '../models/country_code.dart';
 import '../widgets/rounded_phone_input.dart';
 import '../../navigation/main_navigation_screen.dart';
+import '../../../core/services/auth_service.dart';
+import '../widgets/google_account_picker_modal.dart';
 import 'otp_verification_screen.dart';
+import 'profile_setup_screen.dart';
 
 /// Customer Sign Up Screen: Phone number, Send OTP, and Sign in with Google
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+  const SignUpScreen({
+    super.key,
+    this.promptAccountPicker = true,
+  });
+
+  final bool promptAccountPicker;
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -66,19 +74,61 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() => _isGoogleLoading = true);
+    GoogleAccount? selectedAccount;
+    if (widget.promptAccountPicker) {
+      selectedAccount = await GoogleAccountPickerModal.show(context);
+      if (selectedAccount == null) return;
+    } else {
+      selectedAccount = AuthService.defaultAccounts.first;
+    }
 
-    // Simulate Google account selection and authentication
-    await Future.delayed(const Duration(milliseconds: 600));
+    setState(() => _isGoogleLoading = true);
+    final user = await AuthService.instance.signInWithGoogle(selectedAccount);
+    final emailExists = await AuthService.instance.checkEmailExists(user.email);
 
     if (!mounted) return;
     setState(() => _isGoogleLoading = false);
 
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
-      (route) => false,
-    );
+    if (emailExists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Signed in as ${user.displayName} (${user.email})',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF1F1F1F),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Direct navigate to main screen if email exists
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
+      );
+    } else {
+      // Direct to profile setup page if email does not exist yet
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProfileSetupScreen(
+            phoneNumber: user.phone ?? '',
+            initialName: user.displayName,
+            initialEmail: user.email,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -159,8 +209,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: AppSpacing.xxl),
 
                 // ── Already have account footer ───────────────────────────
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       AppStrings.alreadyHaveAccount,
