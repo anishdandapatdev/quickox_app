@@ -5,6 +5,7 @@ import '../../../core/services/booking_payment_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/common_widgets.dart';
 import '../../../shared/widgets/razorpay_webview_screen.dart';
+import '../../navigation/main_navigation_screen.dart';
 
 enum PaymentMethodType {
   razorpay,
@@ -442,23 +443,63 @@ class _ChooseAppointmentSlotScreenState
               ),
 
             const SizedBox(height: 18),
+            // Primary action: View My Bookings (Index 3)
             SizedBox(
               width: double.infinity,
-              height: 44,
-              child: ElevatedButton(
+              height: 46,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                label: const Text(
+                  'View My Bookings',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 0,
                 ),
                 onPressed: () {
                   Navigator.pop(dialogCtx);
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MainNavigationScreen(initialIndex: 3),
+                    ),
+                    (route) => false,
+                  );
                 },
-                child: const Text('Back to Home',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Secondary action: Back to Home (Index 0)
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF334155),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MainNavigationScreen(initialIndex: 0),
+                    ),
+                    (route) => false,
+                  );
+                },
+                child: const Text(
+                  'Back to Home',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],

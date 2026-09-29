@@ -3,7 +3,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/firebase_membership_service.dart';
 import '../../../shared/widgets/razorpay_webview_screen.dart';
-import '../../bookings/screens/bookings_screen.dart';
+import '../../navigation/main_navigation_screen.dart';
 
 /// Data model representing a BHK-tailored membership plan tier
 class MembershipPlanItem {
@@ -527,11 +527,12 @@ class _MembershipScreenState extends State<MembershipScreen> {
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
-                        Navigator.push(
+                        Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const BookingsScreen(),
+                            builder: (_) => const MainNavigationScreen(initialIndex: 3),
                           ),
+                          (route) => false,
                         );
                       },
                       child: const Text(

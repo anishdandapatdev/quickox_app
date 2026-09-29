@@ -83,7 +83,7 @@ void main() {
         referenceType: 'MEMBERSHIP',
       );
 
-      expect(order['razorpay_order_id'], isNotNull);
+      expect(order.containsKey('key_id'), isTrue);
       expect(order['key_id'], BookingPaymentService.razorpayLiveKeyId);
       expect(order['currency'], 'INR');
     });

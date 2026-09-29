@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,6 +31,9 @@ class BookingPaymentService {
   /// Live Razorpay Key ID matching web paymentService.js & backend configuration
   static const String razorpayLiveKeyId = 'rzp_live_TUmszmWULXlswC';
 
+  /// Production Backend API on Render (matching web app & admin panel)
+  static const String productionBackendUrl = 'https://quickox-backend.onrender.com/api/v1';
+
   /// Backend NestJS API Base URLs (local development & Android emulator)
   static const String backendBaseUrl = 'http://localhost:3000/api/v1';
   static const String backendEmulatorUrl = 'http://10.0.2.2:3000/api/v1';
@@ -48,10 +50,7 @@ class BookingPaymentService {
     String referenceType = 'INSPECTION',
     String? referralCode,
   }) async {
-    final defaultOrderId =
-        'order_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9000) + 1000}';
-
-    final targetUrls = [backendBaseUrl, backendEmulatorUrl];
+    final targetUrls = [productionBackendUrl, backendBaseUrl, backendEmulatorUrl];
 
     for (final base in targetUrls) {
       try {
@@ -65,28 +64,29 @@ class BookingPaymentService {
             'reference_id': referenceId,
             'referral_code': ?referralCode,
           }),
-        ).timeout(const Duration(seconds: 3));
+        ).timeout(const Duration(seconds: 4));
 
         if (res.statusCode == 200 || res.statusCode == 201) {
           final data = jsonDecode(res.body);
-          debugPrint('[BookingPaymentService] Backend order created via $base: ${data['razorpay_order_id']}');
+          final rzpOrderId = data['razorpay_order_id'] as String?;
+          debugPrint('[BookingPaymentService] Backend order created via $base: $rzpOrderId');
           return {
-            'razorpay_order_id': data['razorpay_order_id'] ?? defaultOrderId,
+            'razorpay_order_id': rzpOrderId,
             'key_id': data['key_id'] ?? razorpayLiveKeyId,
             'amount': data['amount'] ?? (amount * 100).toInt(),
             'currency': data['currency'] ?? 'INR',
           };
         }
-      } catch (_) {
-        // Try next base URL
+      } catch (err) {
+        debugPrint('[BookingPaymentService] Notice connecting to $base: $err');
       }
     }
 
-    debugPrint('[BookingPaymentService] Backend offline, proceeding with direct live Razorpay gateway');
+    debugPrint('[BookingPaymentService] Operating in direct client-side live Razorpay mode');
 
-    // Direct mode fallback matching home_service_web paymentService.js
+    // Direct mode fallback: order_id is null so Razorpay does not reject with "order_id does not exist"
     return {
-      'razorpay_order_id': defaultOrderId,
+      'razorpay_order_id': null,
       'key_id': razorpayLiveKeyId,
       'amount': (amount * 100).toInt(),
       'currency': 'INR',
@@ -103,7 +103,7 @@ class BookingPaymentService {
     String? planId,
     double? planAmount,
   }) async {
-    final targetUrls = [backendBaseUrl, backendEmulatorUrl];
+    final targetUrls = [productionBackendUrl, backendBaseUrl, backendEmulatorUrl];
 
     for (final base in targetUrls) {
       try {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/firebase_bookings_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../membership/screens/membership_screen.dart';
 import '../../services/screens/services_screen.dart';
@@ -104,10 +105,37 @@ class _BookingsScreenState extends State<BookingsScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
 
+  final FirebaseBookingsService _bookingsService = FirebaseBookingsService();
+  late List<ServiceBookingItem> _serviceBookings;
+
   @override
   void initState() {
     super.initState();
+    _serviceBookings = List.from(_defaultServiceBookings);
     _searchFocusNode.addListener(_handleSearchFocusChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadRemoteBookings();
+      }
+    });
+  }
+
+  Future<void> _loadRemoteBookings() async {
+    try {
+      final remote = await _bookingsService.fetchBookings();
+      if (remote.isNotEmpty && mounted) {
+        setState(() {
+          final existingIds = remote.map((b) => b.orderId).toSet();
+          final combined = [
+            ...remote,
+            ..._defaultServiceBookings.where((b) => !existingIds.contains(b.orderId)),
+          ];
+          _serviceBookings = combined;
+        });
+      }
+    } catch (e) {
+      debugPrint('[BookingsScreen] Fetch error: $e');
+    }
   }
 
   void _handleSearchFocusChange() {
@@ -124,8 +152,8 @@ class _BookingsScreenState extends State<BookingsScreen> {
     super.dispose();
   }
 
-  // ── Sample Service Bookings Data ──────────────────────────────────────────
-  static const List<ServiceBookingItem> _serviceBookings = [
+  // ── Sample Service Bookings Data (Fallback) ───────────────────────────────
+  static const List<ServiceBookingItem> _defaultServiceBookings = [
     ServiceBookingItem(
       orderId: 'QX-98241',
       serviceName: 'AC Deep Clean & Jet Service',
@@ -891,12 +919,17 @@ class _BookingsScreenState extends State<BookingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7), // Neutral grey-white background
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
-          ),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: _loadRemoteBookings,
+          color: AppColors.primary,
+          backgroundColor: Colors.white,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md,
+            ),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: AppSpacing.xs),
@@ -1340,6 +1373,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
               const SizedBox(height: AppSpacing.xl),
             ],
           ),
+        ),
         ),
       ),
     );

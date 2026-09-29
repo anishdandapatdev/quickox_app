@@ -121,15 +121,14 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
         referralCode: widget.referralCode,
       );
 
-      _orderId = orderRes['razorpay_order_id'] as String? ??
-          'order_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9000) + 1000}';
+      _orderId = orderRes['razorpay_order_id'] as String?;
       _keyId = orderRes['key_id'] as String? ??
           BookingPaymentService.razorpayLiveKeyId;
 
       // 2. Build HTML with Razorpay Checkout.js
       final checkoutHtml = _generateRazorpayHtml(
         keyId: _keyId!,
-        orderId: _orderId!,
+        orderId: _orderId,
         amountPaise: ((widget.amount) * 100).toInt(),
       );
 
@@ -299,13 +298,16 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
 
   String _generateRazorpayHtml({
     required String keyId,
-    required String orderId,
+    String? orderId,
     required int amountPaise,
   }) {
     final safeTitle = widget.title.replaceAll("'", "\\'");
     final safeName = widget.customerName.replaceAll("'", "\\'");
     final safeEmail = widget.customerEmail.replaceAll("'", "\\'");
     final safePhone = widget.customerPhone.replaceAll("'", "\\'");
+    final orderIdLine = (orderId != null && orderId.isNotEmpty)
+        ? 'order_id: "$orderId",'
+        : '';
 
     return '''
 <!DOCTYPE html>
@@ -392,7 +394,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
       name: "Quickox Home Services",
       description: "$safeTitle",
       image: "https://raw.githubusercontent.com/anishdandapatdev/home_service/main/home_service_web/public/icon_logo.jpeg",
-      order_id: "$orderId",
+      $orderIdLine
       prefill: {
         name: "$safeName",
         email: "$safeEmail",
@@ -422,7 +424,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
           window.RazorpayFlutterChannel.postMessage(JSON.stringify({
             status: "success",
             razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id || "$orderId",
+            razorpay_order_id: response.razorpay_order_id || "${orderId ?? ''}",
             razorpay_signature: response.razorpay_signature || ""
           }));
         }
