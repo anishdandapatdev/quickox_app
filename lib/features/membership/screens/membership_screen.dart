@@ -90,7 +90,8 @@ class MembershipCoupon {
 /// - Active membership banner & renewal flow
 /// - Interactive subscription checkout with coupon application & payment simulation
 class MembershipScreen extends StatefulWidget {
-  const MembershipScreen({super.key});
+  final UserSubscription? initialActiveSubscription;
+  const MembershipScreen({super.key, this.initialActiveSubscription});
 
   @override
   State<MembershipScreen> createState() => _MembershipScreenState();
@@ -98,9 +99,6 @@ class MembershipScreen extends StatefulWidget {
 
 class _MembershipScreenState extends State<MembershipScreen> {
   final FirebaseMembershipService _firebaseService = FirebaseMembershipService();
-
-  // Selected duration: 1, 3, 6, or 12 months (matching web multiplier)
-  int _selectedMonths = 12;
 
   // Selected BHK filter: 'All', '1 RK', '1 BHK', '1.5 BHK', '2 BHK', '2.5 BHK', '3 BHK'
   String _selectedBhkFilter = 'All';
@@ -116,6 +114,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialActiveSubscription != null) {
+      _activeSubscription = widget.initialActiveSubscription;
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _loadFirebaseData();
@@ -137,7 +138,11 @@ class _MembershipScreenState extends State<MembershipScreen> {
         setState(() {
           _plans = results[0] as List<MembershipPlanItem>;
           _availableCoupons = results[1] as List<MembershipCoupon>;
-          _activeSubscription = results[2] as UserSubscription?;
+          // Preserve initialActiveSubscription if live returns null (e.g. offline/testing)
+          final liveSub = results[2] as UserSubscription?;
+          if (liveSub != null || widget.initialActiveSubscription == null) {
+            _activeSubscription = liveSub;
+          }
           _isLoading = false;
         });
       }
@@ -164,7 +169,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => _CheckoutSheet(
         plan: plan,
-        initialMonths: _selectedMonths,
+        initialMonths: 1,
         availableCoupons: _availableCoupons,
         onSubscribed: (planName, durationMonths, totalPaid, code, [paymentId, orderId]) {
           Navigator.pop(ctx);
@@ -567,18 +572,11 @@ class _MembershipScreenState extends State<MembershipScreen> {
             children: [
 
 
-            // ── Active Subscription Status Card or Member Benefits Promo ──────
+            // ── Active Subscription Status Card ──────────────────────────────
             if (_activeSubscription != null && _activeSubscription!.isActive) ...[
               _buildActiveMembershipHero(_activeSubscription!),
               const SizedBox(height: AppSpacing.lg),
-            ] else ...[
-              _buildMemberBenefitsPromo(),
-              const SizedBox(height: AppSpacing.md),
             ],
-
-            // ── Multi-Month Duration Selector Bar ─────────────────────────────
-            _buildDurationMultiplierSelector(),
-            const SizedBox(height: AppSpacing.md),
 
             // ── BHK Category Filter Pills ─────────────────────────────────────
             _buildBhkFilterChips(),
@@ -601,16 +599,20 @@ class _MembershipScreenState extends State<MembershipScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  _selectedMonths == 12
-                      ? 'Yearly (Save 20%)'
-                      : '$_selectedMonths Mo',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _selectedMonths == 12
-                        ? const Color(0xFF16A34A)
-                        : AppColors.primary,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDF4),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF86EFAC)),
+                  ),
+                  child: const Text(
+                    'Save 20% on Yearly',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF16A34A),
+                    ),
                   ),
                 ),
               ],
@@ -860,185 +862,8 @@ class _MembershipScreenState extends State<MembershipScreen> {
     );
   }
 
-  // ── Promo Banner: Shown When User Does Not Have Active Subscription ───────
-  Widget _buildMemberBenefitsPromo() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF334155)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x18000000),
-            blurRadius: 16,
-            offset: Offset(0, 6),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.25),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.workspace_premium_rounded,
-                  color: Color(0xFFFBBF24),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Quickox Home Care Membership',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Zero labor fee • Free inspections • Priority technician visits',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF94A3B8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
-  // ── Multi-Month Duration Selector Bar ─────────────────────────────────────
-  Widget _buildDurationMultiplierSelector() {
-    final durations = [1, 3, 6, 12];
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  'Select Duration & Multiplier',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0F172A),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(width: 8),
-              Text(
-                'Save 20% on Yearly',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF16A34A),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: durations.map((months) {
-              final isSelected = _selectedMonths == months;
-              final isYearly = months == 12;
-
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: () => setState(() => _selectedMonths = months),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? (isYearly
-                                ? const Color(0xFF16A34A)
-                                : AppColors.primary)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected
-                              ? (isYearly
-                                  ? const Color(0xFF16A34A)
-                                  : AppColors.primary)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            isYearly ? '⭐ 12 Mo' : '$months Mo',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFF334155),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            isYearly ? 'Yearly' : '*$months',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isSelected
-                                  ? Colors.white.withValues(alpha: 0.85)
-                                  : const Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ── BHK Category Filter Chips ─────────────────────────────────────────────
   Widget _buildBhkFilterChips() {
@@ -1082,10 +907,6 @@ class _MembershipScreenState extends State<MembershipScreen> {
 
   // ── Plan Card Anatomy ─────────────────────────────────────────────────────
   Widget _buildPlanCard(MembershipPlanItem plan) {
-    final isYearly = _selectedMonths == 12;
-    final totalCost = plan.calculateTotal(_selectedMonths);
-    final effectiveMonthly = plan.effectiveMonthlyRate(_selectedMonths);
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1200,7 +1021,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          '₹$effectiveMonthly',
+                          '₹${plan.monthlyPrice}',
                           style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
@@ -1222,15 +1043,16 @@ class _MembershipScreenState extends State<MembershipScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
+                        color: const Color(0xFFF0FDF4),
                         borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF86EFAC)),
                       ),
                       child: Text(
-                        'Total: ₹$totalCost (${_selectedMonths == 12 ? "12 Mo" : "$_selectedMonths Mo"})',
+                        'Yearly: ₹${plan.yearlyPrice}/mo',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF475569),
+                          color: Color(0xFF16A34A),
                         ),
                       ),
                     ),
@@ -1241,15 +1063,11 @@ class _MembershipScreenState extends State<MembershipScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 4, bottom: 12),
                   child: Text(
-                    isYearly
-                        ? '⭐ ${plan.yearlyNote}'
-                        : 'Yearly billing: ${plan.yearlyNote}',
-                    style: TextStyle(
+                    '⭐ ${plan.yearlyNote}',
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: isYearly
-                          ? const Color(0xFF16A34A)
-                          : const Color(0xFF059669),
+                      color: Color(0xFF16A34A),
                     ),
                   ),
                 ),
@@ -1332,9 +1150,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
                       ),
                     ),
                     onPressed: () => _openCheckoutSheet(plan),
-                    child: Text(
-                      plan.isPopular ? 'Subscribe Now' : 'Choose Plan',
-                      style: const TextStyle(
+                    child: const Text(
+                      'View Plan',
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1393,7 +1211,6 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   MembershipCoupon? _appliedCoupon;
   String _couponError = '';
   bool _isProcessing = false;
-  int _selectedPaymentMethod = 0; // 0 = UPI, 1 = Card, 2 = Net Banking
 
   @override
   void initState() {
@@ -1518,34 +1335,174 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Duration selector
-              const Text(
-                'Select Duration',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                ),
+              // Duration selector with +/- stepper (1 to 12 Months)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Select Duration',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                  if (_months == 12)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0FDF4),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF86EFAC)),
+                      ),
+                      child: const Text(
+                        'Save 20% on Yearly',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 8),
+
+              // Stepper Row: [-] [Count Display] [+]
+              Row(
+                children: [
+                  InkWell(
+                    onTap: _months > 1
+                        ? () => setState(() => _months--)
+                        : null,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _months > 1
+                            ? const Color(0xFFF1F5F9)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _months > 1
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.remove_rounded,
+                        size: 22,
+                        color: _months > 1
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _months == 12
+                            ? const Color(0xFF16A34A).withValues(alpha: 0.1)
+                            : AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _months == 12
+                              ? const Color(0xFF16A34A).withValues(alpha: 0.4)
+                              : AppColors.primary.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$_months ${_months == 1 ? "Month" : "Months"}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              height: 1.15,
+                              color: _months == 12
+                                  ? const Color(0xFF16A34A)
+                                  : AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _months == 12
+                                ? 'Yearly Plan (Save 20%)'
+                                : '₹${widget.plan.monthlyPrice} × $_months months',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              height: 1.15,
+                              color: _months == 12
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: _months < 12
+                        ? () => setState(() => _months++)
+                        : null,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 44,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: _months < 12
+                            ? const Color(0xFFF1F5F9)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _months < 12
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.add_rounded,
+                        size: 22,
+                        color: _months < 12
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFFCBD5E1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Quick Preset Chips (1 Mo, 3 Mo, 6 Mo, 12 Mo)
               Row(
                 children: [1, 3, 6, 12].map((m) {
                   final isSel = _months == m;
                   return Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: 2.5),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(8),
                         onTap: () => setState(() => _months = m),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.symmetric(vertical: 6),
                           decoration: BoxDecoration(
                             color: isSel
                                 ? (m == 12
                                     ? const Color(0xFF16A34A)
                                     : AppColors.primary)
                                 : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isSel
                                   ? (m == 12
@@ -1558,9 +1515,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                m == 12 ? '12 Mo (20% OFF)' : '$m Mo',
+                                m == 12 ? '⭐ 12 Mo' : '$m Mo',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: isSel ? Colors.white : const Color(0xFF334155),
                                 ),
@@ -1575,7 +1532,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               ),
               const SizedBox(height: 16),
 
-              // Coupon Input Section
+              // Coupon Input Section (Clean single border, no double outlines)
               const Text(
                 'Apply Promo Code',
                 style: TextStyle(
@@ -1586,39 +1543,61 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               ),
               const SizedBox(height: 8),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Container(
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFCBD5E1)),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: SizedBox(
+                      height: 48,
                       child: TextField(
                         controller: _couponController,
                         textCapitalization: TextCapitalization.characters,
-                        decoration: const InputDecoration(
+                        textAlignVertical: TextAlignVertical.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                        ),
+                        decoration: InputDecoration(
                           hintText: 'Enter coupon (e.g. QUICKOX20)',
-                          hintStyle: TextStyle(
+                          hintStyle: const TextStyle(
                             fontSize: 13,
+                            fontWeight: FontWeight.w400,
                             color: Color(0xFF94A3B8),
                           ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 13,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   SizedBox(
-                    height: 46,
+                    height: 48,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 0),
+                        minimumSize: const Size(80, 48),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -1626,7 +1605,12 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                       onPressed: () => _applyCouponCode(_couponController.text),
                       child: const Text(
                         'Apply',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
                   ),
@@ -1742,27 +1726,6 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Payment options
-              const Text(
-                'Payment Method',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _paymentOption(0, 'UPI / GPay', Icons.qr_code_rounded),
-                  const SizedBox(width: 8),
-                  _paymentOption(1, 'Card', Icons.credit_card_rounded),
-                  const SizedBox(width: 8),
-                  _paymentOption(2, 'NetBanking', Icons.account_balance_rounded),
-                ],
-              ),
               const SizedBox(height: 20),
 
               // Proceed CTA button
@@ -1877,50 +1840,6 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _paymentOption(int index, String label, IconData icon) {
-    final isSel = _selectedPaymentMethod == index;
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => setState(() => _selectedPaymentMethod = index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSel ? const Color(0xFFEFF6FF) : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSel ? AppColors.primary : const Color(0xFFE2E8F0),
-              width: isSel ? 1.5 : 1.0,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 16,
-                color: isSel ? AppColors.primary : const Color(0xFF64748B),
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: isSel ? AppColors.primary : const Color(0xFF334155),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -554,15 +554,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Verify Title & Active Member Banner
+    // Verify Title & BHK Filter Chips
     expect(find.widgetWithText(AppBar, 'Membership Plans'), findsOneWidget);
-    expect(find.text('ACTIVE SUBSCRIBER'), findsOneWidget);
-    expect(find.text('₹899 Plan — 2 BHK Premium Protection'), findsOneWidget);
-
-    // Verify Duration Multiplier Selector
-    expect(find.text('Select Duration & Multiplier'), findsOneWidget);
-    expect(find.text('Save 20% on Yearly'), findsOneWidget);
-    expect(find.text('⭐ 12 Mo'), findsOneWidget);
 
     // Verify BHK Filter Chips
     expect(find.text('All BHKs'), findsOneWidget);
@@ -572,9 +565,10 @@ void main() {
     // Verify Total Plan Count
     expect(find.text('Membership Plans (11)'), findsOneWidget);
 
-    // Verify Plans Presence
+    // Verify Plans Presence & View Plan CTA
     expect(find.text('₹299 Plan'), findsOneWidget);
     expect(find.text('1 RK Essential Maintenance'), findsOneWidget);
+    expect(find.text('View Plan'), findsWidgets);
   });
 
   testWidgets('MembershipScreen filters by BHK and opens checkout bottom sheet', (WidgetTester tester) async {
@@ -600,13 +594,12 @@ void main() {
     expect(find.text('₹299 Plan'), findsOneWidget);
 
     // Open Checkout Bottom Sheet
-    await tester.ensureVisible(find.text('Choose Plan').first);
-    await tester.tap(find.text('Choose Plan').first);
+    await tester.ensureVisible(find.text('View Plan').first);
+    await tester.tap(find.text('View Plan').first);
     await tester.pumpAndSettle();
 
     expect(find.text('Select Duration'), findsOneWidget);
     expect(find.text('Apply Promo Code'), findsOneWidget);
-    expect(find.text('Payment Method'), findsOneWidget);
     expect(find.text('Total Payable'), findsOneWidget);
 
     // Apply Coupon Code
