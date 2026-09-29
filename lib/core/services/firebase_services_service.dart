@@ -667,7 +667,70 @@ class FirebaseServicesService {
 
   // ──────────────────────────── Service Categories ──────────────────────────
 
-  /// Default 9 categories matching Firestore serviceCategories and explore_service.jsx
+  /// Checks whether a given category ID or title belongs strictly to Doorstep Home Services
+  /// and excludes all other Super App verticals (Food Delivery, Bike & Cab, Ambulance,
+  /// Medicine Delivery, Hotel/Room Booking, Electra Scooty, Event Booking).
+  static bool isHomeServiceCategory(String idOrTitle) {
+    final lower = idOrTitle.trim().toLowerCase();
+
+    // Explicit exclusions for other Super App verticals
+    if (lower.contains('food') ||
+        lower.contains('restaurant') ||
+        lower.contains('tiffin') ||
+        lower.contains('biryani') ||
+        lower.contains('meal') ||
+        lower.contains('kitchen')) {
+      return false;
+    }
+    if (lower.contains('bike') ||
+        lower.contains('cab') ||
+        lower.contains('sedan') ||
+        lower.contains('ride') ||
+        lower.contains('taxi') ||
+        lower.contains('auto rickshaw')) {
+      return false;
+    }
+    if (lower.contains('ambulance') ||
+        lower.contains('emergency ambulance') ||
+        lower.contains('icu on wheels') ||
+        lower.contains('hospital') ||
+        lower.contains('paramedic')) {
+      return false;
+    }
+    if (lower.contains('medicine') ||
+        lower.contains('pharmacy') ||
+        lower.contains('prescription') ||
+        lower.contains('otc')) {
+      return false;
+    }
+    // Room cleaning is a home service, but room/hotel/homestay booking is not
+    if ((lower.contains('room') ||
+            lower.contains('hotel') ||
+            lower.contains('pg stay') ||
+            lower.contains('homestay') ||
+            lower.contains('guest house')) &&
+        !lower.contains('clean')) {
+      return false;
+    }
+    if (lower.contains('electra') ||
+        lower.contains('scooty') ||
+        lower.contains('scooter') ||
+        lower.contains('battery swap')) {
+      return false;
+    }
+    if (lower.contains('event') ||
+        lower.contains('marriage') ||
+        lower.contains('wedding') ||
+        lower.contains('annaprashan') ||
+        lower.contains('rice ceremony') ||
+        lower.contains('party decor')) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /// Default categories matching Doorstep Home Services in Firestore & explore_service.jsx
   static const List<ServiceCategoryItem> defaultCategories = [
     ServiceCategoryItem(
       id: 'AC',
@@ -754,16 +817,88 @@ class FirebaseServicesService {
       bgColor: Color(0xFFF5F3FF),
     ),
     ServiceCategoryItem(
+      id: 'CARPENTRYSERVICES',
+      title: 'Carpentry Services',
+      desc: 'Door lock, hinge repair, furniture carpentry & drawer sliders',
+      imageUrl: 'assets/images/products/cctv_camera_mount.jpg',
+      badgeText: 'Live Now',
+      sortOrder: 8,
+      tags: ['Door Lock', 'Hinges', 'Furniture Fix'],
+      fallbackIcon: Icons.carpenter_rounded,
+      color: Color(0xFFB45309),
+      bgColor: Color(0xFFFEF3C7),
+    ),
+    ServiceCategoryItem(
       id: 'ELECTRONICSSERVICES',
       title: 'Electronics & Appliances',
       desc: 'TV, Refrigerator, Washing Machine, Microwave & appliances',
       imageUrl: 'assets/images/refrigerator_technician.jpg',
       badgeText: 'Live Now',
-      sortOrder: 8,
+      sortOrder: 9,
       tags: ['Fridge', 'Washing Machine', 'Microwave'],
       fallbackIcon: Icons.kitchen_rounded,
       color: Color(0xFFEA580C),
       bgColor: Color(0xFFFFF7ED),
+    ),
+    ServiceCategoryItem(
+      id: 'PAINTINGSERVICES',
+      title: 'Painting Services',
+      desc: 'Interior, exterior wall painting, waterproof primer & touch-ups',
+      imageUrl: 'assets/images/products/cctv_camera_mount.jpg',
+      badgeText: 'Live Now',
+      sortOrder: 10,
+      tags: ['Wall Painting', 'Interior', 'Waterproofing'],
+      fallbackIcon: Icons.format_paint_rounded,
+      color: Color(0xFF7C3AED),
+      bgColor: Color(0xFFF5F3FF),
+    ),
+    ServiceCategoryItem(
+      id: 'CLEANINGSERVICES',
+      title: 'Cleaning Services',
+      desc: 'Deep home cleaning, kitchen sanitization, bathroom scrubbing',
+      imageUrl: 'assets/images/plumbing.png',
+      badgeText: 'Live Now',
+      sortOrder: 11,
+      tags: ['Deep Cleaning', 'Sanitization', 'Floor Scrub'],
+      fallbackIcon: Icons.cleaning_services_rounded,
+      color: Color(0xFF059669),
+      bgColor: Color(0xFFECFDF5),
+    ),
+    ServiceCategoryItem(
+      id: 'PESTCONTROL',
+      title: 'Pest Control',
+      desc: 'Cockroach, termite, bed bugs, mosquito & herbal pest spray',
+      imageUrl: 'assets/images/electrician.png',
+      badgeText: 'Live Now',
+      sortOrder: 12,
+      tags: ['Termite Spray', 'Cockroach Fix', 'Pest Spray'],
+      fallbackIcon: Icons.pest_control_rounded,
+      color: Color(0xFFDC2626),
+      bgColor: Color(0xFFFEF2F2),
+    ),
+    ServiceCategoryItem(
+      id: 'CCTVSECURITY',
+      title: 'CCTV & Security',
+      desc: 'Camera installation, DVR configuration, live feed setup & cabling',
+      imageUrl: 'assets/images/products/cctv_camera_mount.jpg',
+      badgeText: 'Live Now',
+      sortOrder: 13,
+      tags: ['CCTV Setup', 'DVR Fix', 'Night Vision'],
+      fallbackIcon: Icons.videocam_rounded,
+      color: Color(0xFF0284C7),
+      bgColor: Color(0xFFE0F2FE),
+    ),
+    ServiceCategoryItem(
+      id: 'INVERTERBATTERY',
+      title: 'Inverter & Battery',
+      desc: 'Inverter wiring, battery health test, water top-up & backup fix',
+      imageUrl: 'assets/images/products/solar_junction_box.jpg',
+      badgeText: 'Live Now',
+      sortOrder: 14,
+      tags: ['Battery Check', 'Inverter Fix', 'Backup Test'],
+      fallbackIcon: Icons.battery_charging_full_rounded,
+      color: Color(0xFF16A34A),
+      bgColor: Color(0xFFF0FDF4),
     ),
     ServiceCategoryItem(
       id: 'SOLARSERVICES',
@@ -771,7 +906,7 @@ class FirebaseServicesService {
       desc: 'Solar panel cleaning, inverter diagnostics & battery maintenance',
       imageUrl: 'assets/images/products/solar_junction_box.jpg',
       badgeText: 'Live Now',
-      sortOrder: 9,
+      sortOrder: 15,
       tags: ['Solar Inverter', 'Panel Wash', 'Battery Setup'],
       fallbackIcon: Icons.wb_sunny_rounded,
       color: Color(0xFFD97706),
@@ -779,7 +914,8 @@ class FirebaseServicesService {
     ),
   ];
 
-  /// Fetches service categories dynamically from Firestore 'serviceCategories'
+  /// Fetches service categories dynamically from Firestore 'serviceCategories',
+  /// strictly filtered to Doorstep Home Service categories only.
   Future<List<ServiceCategoryItem>> fetchCategories() async {
     try {
       final uri = Uri.parse('$firestoreBaseUrl/serviceCategories?pageSize=50');
@@ -802,11 +938,16 @@ class FirebaseServicesService {
             final String docPath = doc['name'] as String? ?? '';
             final String id = docPath.split('/').last;
 
+            // Strictly filter to Home Service categories only
+            if (!isHomeServiceCategory(id)) continue;
+
             final String rawTitle = _extractString(
               fields['title'] ?? fields['name'] ?? fields['categoryName'],
               fallback: id,
             );
             final String cleanTitle = _cleanCategoryName(rawTitle);
+
+            if (!isHomeServiceCategory(cleanTitle)) continue;
 
             final String desc = _extractString(
               fields['desc'] ?? fields['description'],
@@ -852,7 +993,9 @@ class FirebaseServicesService {
       debugPrint('FirebaseServicesService: fetchCategories error: $e');
     }
 
-    return defaultCategories;
+    return defaultCategories
+        .where((c) => isHomeServiceCategory(c.id) && isHomeServiceCategory(c.title))
+        .toList();
   }
 
   // ──────────────────────────── Super App Verticals Catalogs ────────────────
@@ -1506,7 +1649,14 @@ class FirebaseServicesService {
     if (cat.contains('pump')) return ['Motor Rewind', 'Capacitor', 'Pump Fix'];
     if (cat.contains('geyser')) return ['Heating Rod', 'Descaling', 'Thermostat'];
     if (cat.contains('fan')) return ['Capacitor', 'Regulator', 'Bearing Noise'];
-    if (cat.contains('solar')) return ['Solar Inverter', 'Panel Wash', 'Battery'];
+    if (cat.contains('carpentr')) return ['Door Lock', 'Hinges', 'Furniture Fix'];
+    if (cat.contains('paint')) return ['Wall Painting', 'Interior', 'Waterproofing'];
+    if (cat.contains('clean')) return ['Deep Cleaning', 'Sanitization', 'Floor Scrub'];
+    if (cat.contains('pest')) return ['Termite Spray', 'Cockroach Fix', 'Pest Spray'];
+    if (cat.contains('cctv') || cat.contains('secur')) return ['CCTV Setup', 'DVR Fix', 'Night Vision'];
+    if (cat.contains('inverter') || cat.contains('battery')) return ['Battery Check', 'Inverter Fix', 'Backup Test'];
+    if (cat.contains('solar')) return ['Solar Inverter', 'Panel Wash', 'Battery Setup'];
+    if (cat.contains('wash')) return ['Pressure Wash', 'Interior Foam', 'Doorstep'];
     return ['Doorstep Service', 'Verified Expert', 'Warranty'];
   }
 
@@ -1519,7 +1669,14 @@ class FirebaseServicesService {
     if (cat.contains('pump')) return Icons.waves_rounded;
     if (cat.contains('geyser')) return Icons.local_fire_department_rounded;
     if (cat.contains('fan')) return Icons.mode_fan_off_rounded;
+    if (cat.contains('carpentr')) return Icons.carpenter_rounded;
+    if (cat.contains('paint')) return Icons.format_paint_rounded;
+    if (cat.contains('clean')) return Icons.cleaning_services_rounded;
+    if (cat.contains('pest')) return Icons.pest_control_rounded;
+    if (cat.contains('cctv') || cat.contains('secur')) return Icons.videocam_rounded;
+    if (cat.contains('inverter') || cat.contains('battery')) return Icons.battery_charging_full_rounded;
     if (cat.contains('solar')) return Icons.wb_sunny_rounded;
+    if (cat.contains('wash')) return Icons.local_car_wash_rounded;
     return Icons.home_repair_service_rounded;
   }
 
@@ -1532,7 +1689,14 @@ class FirebaseServicesService {
     if (cat.contains('pump')) return const Color(0xFF0891B2);
     if (cat.contains('geyser')) return const Color(0xFFE11D48);
     if (cat.contains('fan')) return const Color(0xFF7C3AED);
+    if (cat.contains('carpentr')) return const Color(0xFFB45309);
+    if (cat.contains('paint')) return const Color(0xFF7C3AED);
+    if (cat.contains('clean')) return const Color(0xFF059669);
+    if (cat.contains('pest')) return const Color(0xFFDC2626);
+    if (cat.contains('cctv') || cat.contains('secur')) return const Color(0xFF0284C7);
+    if (cat.contains('inverter') || cat.contains('battery')) return const Color(0xFF16A34A);
     if (cat.contains('solar')) return const Color(0xFFD97706);
+    if (cat.contains('wash')) return const Color(0xFF0284C7);
     return const Color(0xFF2563EB);
   }
 
@@ -1545,7 +1709,14 @@ class FirebaseServicesService {
     if (cat.contains('pump')) return const Color(0xFFECFEFF);
     if (cat.contains('geyser')) return const Color(0xFFFFF1F2);
     if (cat.contains('fan')) return const Color(0xFFF5F3FF);
+    if (cat.contains('carpentr')) return const Color(0xFFFEF3C7);
+    if (cat.contains('paint')) return const Color(0xFFF5F3FF);
+    if (cat.contains('clean')) return const Color(0xFFECFDF5);
+    if (cat.contains('pest')) return const Color(0xFFFEF2F2);
+    if (cat.contains('cctv') || cat.contains('secur')) return const Color(0xFFE0F2FE);
+    if (cat.contains('inverter') || cat.contains('battery')) return const Color(0xFFF0FDF4);
     if (cat.contains('solar')) return const Color(0xFFFFFBEB);
+    if (cat.contains('wash')) return const Color(0xFFE0F2FE);
     return const Color(0xFFEFF6FF);
   }
 
@@ -1653,10 +1824,15 @@ class FirebaseServicesService {
     final cat = category.toLowerCase();
     if (cat.contains('ac')) return 'assets/images/ac.png';
     if (cat.contains('electr')) return 'assets/images/electrician.png';
-    if (cat.contains('plumb')) return 'assets/images/plumbing.png';
+    if (cat.contains('plumb') || cat.contains('clean')) return 'assets/images/plumbing.png';
     if (cat.contains('ro')) return 'assets/images/ro.png';
     if (cat.contains('fan')) return 'assets/images/products/fan_capacitor.jpg';
-    if (cat.contains('pump')) return 'assets/images/products/solar_junction_box.jpg';
+    if (cat.contains('pump') || cat.contains('solar') || cat.contains('inverter') || cat.contains('battery')) {
+      return 'assets/images/products/solar_junction_box.jpg';
+    }
+    if (cat.contains('carpentr') || cat.contains('cctv') || cat.contains('paint')) {
+      return 'assets/images/products/cctv_camera_mount.jpg';
+    }
     return 'assets/images/refrigerator_technician.jpg';
   }
 }

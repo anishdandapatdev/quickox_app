@@ -136,6 +136,48 @@ void main() {
       expect(searchFiltered.first.title.toLowerCase().contains('switchboard'), isTrue);
     });
 
+    test('isHomeServiceCategory accurately identifies home vs non-home service verticals', () {
+      // Home service categories
+      expect(FirebaseServicesService.isHomeServiceCategory('AC Service'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Electrical Services'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Plumbing Services'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('RO Water Purifier'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Water Pump'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Geyser'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Ceiling Fan'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Carpentry Services'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Painting Services'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Cleaning Services'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Pest Control'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Inverter & Battery'), isTrue);
+      expect(FirebaseServicesService.isHomeServiceCategory('Solar Services'), isTrue);
+
+      // Other Super App verticals should be strictly excluded
+      expect(FirebaseServicesService.isHomeServiceCategory('food_delivery'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Food Delivery'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('bike_cab'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Bike & Cab Service'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('ambulance'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Emergency Ambulance'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('medicine_delivery'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Medicine Delivery'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('room_booking'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Room Booking'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('electra_scooty'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Electra Scooty'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('event_booking'), isFalse);
+      expect(FirebaseServicesService.isHomeServiceCategory('Event Booking'), isFalse);
+    });
+
+    test('fetchCategories strictly excludes non-home verticals', () async {
+      final service = FirebaseServicesService();
+      final categories = await service.fetchCategories();
+      for (final c in categories) {
+        expect(FirebaseServicesService.isHomeServiceCategory(c.id), isTrue);
+        expect(FirebaseServicesService.isHomeServiceCategory(c.title), isTrue);
+      }
+    });
+
     test('fetchServiceDetail returns rich model with inclusions, FAQs and steps', () async {
       final service = FirebaseServicesService();
       final detail = await service.fetchServiceDetail('AC Deep Cleaning');

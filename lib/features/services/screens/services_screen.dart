@@ -43,9 +43,12 @@ class _ServicesScreenState extends State<ServicesScreen> {
   Future<void> _loadCategories() async {
     try {
       final fetched = await _servicesService.fetchCategories();
-      if (mounted && fetched.isNotEmpty) {
+      final homeOnly = fetched.where((c) =>
+          FirebaseServicesService.isHomeServiceCategory(c.id) &&
+          FirebaseServicesService.isHomeServiceCategory(c.title)).toList();
+      if (mounted && homeOnly.isNotEmpty) {
         setState(() {
-          _categories = fetched;
+          _categories = homeOnly;
           _isLoading = false;
         });
       }
@@ -61,7 +64,9 @@ class _ServicesScreenState extends State<ServicesScreen> {
   @override
   Widget build(BuildContext context) {
     final activeList = _categories.isNotEmpty
-        ? _categories
+        ? _categories.where((c) =>
+            FirebaseServicesService.isHomeServiceCategory(c.id) &&
+            FirebaseServicesService.isHomeServiceCategory(c.title)).toList()
         : FirebaseServicesService.defaultCategories;
 
     final filteredCategories = _searchQuery.isEmpty
@@ -111,7 +116,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     onChanged: (v) => setState(() => _searchQuery = v),
                     style: AppTextStyles.bodyMd.copyWith(color: AppColors.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Search all services (AC repair, plumbing, etc.)',
+                      hintText: 'Search home services (AC repair, plumbing, etc.)',
                       hintStyle: AppTextStyles.bodyMd.copyWith(
                         color: AppColors.textMuted,
                         fontSize: 13,
@@ -401,21 +406,7 @@ class _HorizontalCategoryCard extends StatelessWidget {
           SizedBox(
             width: 104,
             height: double.infinity,
-            child: item.imageUrl.startsWith('http')
-                ? Image.network(
-                    item.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-                    loadingBuilder: (context, child, prog) {
-                      if (prog == null) return child;
-                      return _buildPlaceholder();
-                    },
-                  )
-                : Image.asset(
-                    item.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-                  ),
+            child: _buildImageWidget(item.imageUrl),
           ),
           const SizedBox(width: 14),
 
@@ -469,6 +460,29 @@ class _HorizontalCategoryCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildImageWidget(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _buildPlaceholder(),
+        loadingBuilder: (_, child, prog) {
+          if (prog == null) return child;
+          return _buildPlaceholder();
+        },
+      );
+    }
+    final assetPath = path.startsWith('/') ? path.substring(1) : path;
+    if (assetPath.startsWith('assets/')) {
+      return Image.asset(
+        assetPath,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _buildPlaceholder(),
+      );
+    }
+    return _buildPlaceholder();
   }
 
   Widget _buildPlaceholder() {
