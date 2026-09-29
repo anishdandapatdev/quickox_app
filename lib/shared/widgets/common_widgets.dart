@@ -157,3 +157,50 @@ class SocialLoginButton extends StatelessWidget {
     );
   }
 }
+
+/// Reusable circular back button matching CategoryDetailScreen styling
+class AppBackButton extends StatelessWidget {
+  const AppBackButton({
+    super.key,
+    this.onTap,
+    this.size = 40.0,
+    this.iconSize = 16.0,
+    this.backgroundColor = const Color(0xFFF1F5F9),
+    this.borderColor = const Color(0xFFE2E8F0),
+    this.iconColor = const Color(0xFF0F172A),
+  });
+
+  final VoidCallback? onTap;
+  final double size;
+  final double iconSize;
+  final Color backgroundColor;
+  final Color borderColor;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap ?? () => Navigator.maybePop(context),
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: borderColor, width: 1),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: iconSize,
+            color: iconColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+

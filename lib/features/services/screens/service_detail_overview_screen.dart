@@ -4,6 +4,7 @@ import '../../../core/services/firebase_services_service.dart';
 import '../../../core/theme/app_colors.dart';
 import 'book_technician_screen.dart';
 import 'shop_parts_screen.dart';
+import '../../../shared/widgets/common_widgets.dart';
 
 /// Screen displaying the complete Service Overview & Landing details
 /// matching the user mockup with hero illustration, stats, "Choose What You Need",
@@ -233,15 +234,8 @@ class _ServiceDetailOverviewScreenState
           // Back Button
           Row(
             children: [
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Color(0xFF0F172A),
-                  size: 24,
-                ),
-                onPressed: () => Navigator.pop(context),
+              AppBackButton(
+                onTap: () => Navigator.pop(context),
               ),
             ],
           ),

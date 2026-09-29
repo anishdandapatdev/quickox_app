@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/common_widgets.dart';
 import 'choose_appointment_slot_screen.dart';
 
 /// Screen allowing the user to configure and book a technician
@@ -316,15 +317,8 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        IconButton(
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 20,
-            color: Color(0xFF0F172A),
-          ),
-          onPressed: () => Navigator.pop(context),
+        AppBackButton(
+          onTap: () => Navigator.pop(context),
         ),
         Expanded(
           child: Column(
@@ -363,7 +357,7 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
             ],
           ),
         ),
-        const SizedBox(width: 24), // Balance back button
+        const SizedBox(width: 40), // Balance 40px circular back button
       ],
     );
   }

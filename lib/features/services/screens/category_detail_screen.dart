@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/services/firebase_services_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../shared/widgets/common_widgets.dart';
 import 'service_detail_overview_screen.dart';
 
 /// Screen 2: Filtered Category Services Grid
@@ -311,13 +312,8 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   Widget _buildDefaultHeader(String title) {
     return Row(
       children: [
-        _buildCircleButton(
+        AppBackButton(
           onTap: () => Navigator.pop(context),
-          child: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 16,
-            color: Color(0xFF0F172A),
-          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -352,7 +348,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   Widget _buildSearchHeader(String title) {
     return Row(
       children: [
-        _buildCircleButton(
+        AppBackButton(
           onTap: () {
             setState(() {
               _isSearchOpen = false;
@@ -361,11 +357,6 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
             });
             _loadServices();
           },
-          child: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 16,
-            color: Color(0xFF0F172A),
-          ),
         ),
         const SizedBox(width: 8),
         Expanded(
