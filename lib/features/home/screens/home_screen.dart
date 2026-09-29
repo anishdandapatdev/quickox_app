@@ -3,15 +3,19 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/firebase_bookings_service.dart';
 import '../../../core/services/firebase_services_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../bookings/screens/bookings_screen.dart';
 import '../../services/screens/category_detail_screen.dart';
 
 /// Customer Home Screen featuring:
 /// - Horizontal auto-scrolling promotional Image Carousel (replaces search bar)
-/// - Real-time Super App Service Verticals (Home Service, Medicine Delivery, Food Delivery, etc. matching explore_service.jsx)
-/// - Quickox Care Club VIP Membership Banner
+/// - Real-time Super App Service Verticals in horizontal circular layout (Home Service, Medicine Delivery, Food Delivery, Bike & Cab)
+/// - Popular Service Categories from Services screen in horizontal circular layout
+/// - Quickox Care Club VIP Membership Card
+/// - Recent Bookings section tracking live customer bookings
 /// - Dynamic Real-time Services (3 or 4 services loaded from Firebase Firestore with fallback)
 /// - "View All" button linking directly to the Services Screen (tab 1)
 class HomeScreen extends StatefulWidget {
@@ -34,7 +38,27 @@ class _HomeScreenState extends State<HomeScreen> {
   late final FirebaseServicesService _servicesService;
   List<ServiceVerticalItem> _verticals = FirebaseServicesService.defaultVerticals;
   List<ServiceItem> _services = [];
+  List<ServiceBookingItem> _recentBookings = _defaultRecentBookings;
   bool _isLoadingServices = true;
+
+  static const List<ServiceBookingItem> _defaultRecentBookings = [
+    ServiceBookingItem(
+      orderId: 'QX-98241',
+      serviceName: 'AC Deep Clean & Jet Service',
+      category: 'AC Care',
+      serviceIcon: Icons.ac_unit_rounded,
+      dateTime: '22 May 2026 • 02:30 PM',
+      technicianName: 'Sanjay Mukherjee',
+      technicianPhone: '+91 98321 45670',
+      technicianRole: 'Certified AC Specialist',
+      status: 'ACTIVE',
+      statusSubtitle: 'Confirmed',
+      locationTitle: 'Home',
+      locationSubtitle: 'Haldia Central, WB',
+      durationText: '45m • In Progress',
+      price: '₹ 499/-',
+    ),
+  ];
 
   @override
   void initState() {
@@ -48,16 +72,21 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _isLoadingServices = true);
 
     try {
-      // Fetch dynamic verticals & services from Firebase Firestore
+      // Fetch dynamic verticals, services & recent bookings from Firebase
       final results = await Future.wait([
         _servicesService.fetchVerticals(),
         _servicesService.fetchServices(limit: 4),
+        FirebaseBookingsService().fetchBookings().catchError((_) => <ServiceBookingItem>[]),
       ]);
 
       if (mounted) {
         setState(() {
           _verticals = results[0] as List<ServiceVerticalItem>;
           _services = results[1] as List<ServiceItem>;
+          final bookings = results[2] as List<ServiceBookingItem>;
+          if (bookings.isNotEmpty) {
+            _recentBookings = bookings;
+          }
           _isLoadingServices = false;
         });
       }
@@ -170,309 +199,566 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: AppSpacing.md),
 
-              // ── Dynamic Super App Verticals (matches explore_service.jsx) ───
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Our Services', style: AppTextStyles.h3),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Super App verticals loaded from backend',
-                            style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => widget.onNavigateTab(1), // go to services
-                      child: Text(
-                        'View All',
-                        style: AppTextStyles.labelMd.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-
-              // Verticals 2-Column Grid
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _verticals.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: AppSpacing.md,
-                    crossAxisSpacing: AppSpacing.md,
-                    childAspectRatio: 1.0,
-                  ),
-                  itemBuilder: (context, index) {
-                    final vert = _verticals[index];
-                    return _VerticalShowcaseCard(
-                      item: vert,
-                      onTap: () => _onVerticalTapped(vert),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // ── Membership Promo Banner ─────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Container(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.25),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.full),
-                              ),
-                              child: const Text(
-                                'QUICKOX CARE CLUB',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Save up to 25% on every booking with membership',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            GestureDetector(
-                              onTap: () =>
-                                  widget.onNavigateTab(2), // go to membership
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.full),
-                                ),
-                                child: const Text(
-                                  'Explore Plans →',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.verified_user_rounded,
-                          size: 34,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // ── 1. Our Services (Top 4 Verticals in Horizontal Circles) ───
+              _buildOurServicesSection(),
 
               const SizedBox(height: AppSpacing.xl),
 
-              // ── Dynamic Services (Real Data from Firestore) ─────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Popular Services', style: AppTextStyles.h3),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Real-time verified pricing in Haldia',
-                            style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => widget.onNavigateTab(1), // go to services
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppRadius.full),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'View All',
-                              style: AppTextStyles.labelMd.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 2),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 14,
-                              color: AppColors.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
+              // ── 2. Popular Services (Horizontal Circles + Pricing List) ───
+              _buildPopularServicesSection(),
 
-              if (_isLoadingServices)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: Column(
-                    children: List.generate(
-                      3,
-                      (index) => Container(
-                        height: 84,
-                        margin: const EdgeInsets.only(bottom: AppSpacing.md),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgPrimary,
-                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                  child: Column(
-                    children: _services
-                        .map(
-                          (service) => _ServiceListCard(
-                            service: service,
-                            onBook: () => widget.onNavigateTab(1),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
+              const SizedBox(height: AppSpacing.xl),
 
-              const SizedBox(height: AppSpacing.sm),
+              // ── 3. Quickox Care Club VIP Membership Card ──────────────────
+              _buildMembershipSection(),
 
-              // View All Services Full-Width CTA
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                    onPressed: () => widget.onNavigateTab(1),
-                    icon: const Icon(
-                      Icons.grid_view_rounded,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                    label: const Text(
-                      'View All Services Catalog →',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // ── 4. Recent Bookings Section ────────────────────────────────
+              _buildRecentBookingsSection(),
 
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // ── 1. Our Services Section ───────────────────────────────────────────────
+  Widget _buildOurServicesSection() {
+    final top4 = _verticals.take(4).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Our Services', style: AppTextStyles.h3),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Super App verticals loaded from backend',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => widget.onNavigateTab(1), // go to services
+                child: Text(
+                  'View All',
+                  style: AppTextStyles.labelMd.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // Horizontal Row of 4 Circular Services
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: top4.map((vert) {
+              return _ServiceCircleItem(
+                title: vert.name,
+                imageUrl: vert.imageUrl,
+                icon: vert.icon,
+                color: vert.color,
+                bgColor: vert.bgColor,
+                onTap: () => _onVerticalTapped(vert),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 2. Popular Services Section ───────────────────────────────────────────
+  Widget _buildPopularServicesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Popular Services', style: AppTextStyles.h3),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Real-time verified pricing in Haldia',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => widget.onNavigateTab(1), // go to services
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: AppTextStyles.labelMd.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        // Horizontal Scrolling Circular Categories
+        SizedBox(
+          height: 104,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            scrollDirection: Axis.horizontal,
+            itemCount: _popularCategories.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final cat = _popularCategories[index];
+              return _PopularCategoryCircleItem(
+                category: cat,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CategoryDetailScreen(
+                        headerTitle: cat.title,
+                        headerSubtitle: cat.desc,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+
+        // Dynamic Services Price List Cards
+        if (_isLoadingServices)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              children: List.generate(
+                3,
+                (index) => Container(
+                  height: 84,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgPrimary,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              children: _services
+                  .map(
+                    (service) => _ServiceListCard(
+                      service: service,
+                      onBook: () => widget.onNavigateTab(1),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+
+        const SizedBox(height: AppSpacing.sm),
+
+        // View All Services Full-Width CTA
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: const BorderSide(color: AppColors.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+              onPressed: () => widget.onNavigateTab(1),
+              icon: const Icon(
+                Icons.grid_view_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
+              label: const Text(
+                'View All Services Catalog →',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── 3. Quickox Care Club VIP Membership Card ──────────────────────────────
+  Widget _buildMembershipSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: GestureDetector(
+        onTap: () => widget.onNavigateTab(2), // Navigate to Membership tab
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0C2340), Color(0xFF1E3A8A), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1E3A8A).withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: -25,
+                top: -25,
+                child: Container(
+                  width: 130,
+                  height: 130,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top badge row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                            ),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('👑', style: TextStyle(fontSize: 10)),
+                              SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'CARE CLUB VIP',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                        ),
+                        child: const Text(
+                          'Save 25%',
+                          style: TextStyle(
+                            color: Color(0xFF93C5FD),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Main heading
+                  const Text(
+                    'Quickox Care Club Membership',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      height: 1.25,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Save up to 25% on every booking with membership',
+                    style: TextStyle(
+                      color: Color(0xFFE2E8F0),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Perks pills
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _buildMembershipPerkPill('Free Inspections'),
+                      _buildMembershipPerkPill('20% Off Repairs'),
+                      _buildMembershipPerkPill('Priority Tech Dispatch'),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // CTA Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x1A000000),
+                                blurRadius: 8,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Explore Plans →',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Color(0xFF1E3A8A),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.verified_user_rounded,
+                          size: 22,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMembershipPerkPill(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_rounded,
+              size: 12, color: Color(0xFF34D399)),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── 4. Recent Bookings Section ────────────────────────────────────────────
+  Widget _buildRecentBookingsSection() {
+    final bookings = _recentBookings;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Recent Bookings', style: AppTextStyles.h3),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Track active & recent doorstep services',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => widget.onNavigateTab(3), // Navigate to Bookings tab
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: AppTextStyles.labelMd.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          child: Column(
+            children: bookings.take(2).map((booking) {
+              return _RecentBookingCard(
+                booking: booking,
+                onTap: () => widget.onNavigateTab(3),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1070,60 +1356,73 @@ class _ServiceListCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Super App Vertical Showcase Card (matches explore_service.jsx)
+// Circular Service Horizontal Item (Our Services - 4 Circles)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _VerticalShowcaseCard extends StatelessWidget {
-  const _VerticalShowcaseCard({
-    required this.item,
+class _ServiceCircleItem extends StatelessWidget {
+  const _ServiceCircleItem({
+    required this.title,
+    required this.imageUrl,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
     required this.onTap,
   });
 
-  final ServiceVerticalItem item;
+  final String title;
+  final String imageUrl;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.bgPrimary,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        width: 76,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Card Image
-            Expanded(
-              child: _buildImage(item.imageUrl, item.name),
-            ),
-
-            // Title Name (Service Name)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 10,
-              ),
-              child: Text(
-                item.name,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.labelMd.copyWith(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12.5,
-                  color: AppColors.textPrimary,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: bgColor,
+                border: Border.all(
+                  color: color.withValues(alpha: 0.22),
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.12),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: _buildImageOrIcon(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelMd.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                color: AppColors.textPrimary,
+                height: 1.2,
               ),
             ),
           ],
@@ -1132,47 +1431,486 @@ class _VerticalShowcaseCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImage(String url, String name) {
-    if (url.startsWith('assets/')) {
+  Widget _buildImageOrIcon() {
+    if (imageUrl.startsWith('assets/')) {
       return Image.asset(
-        url,
-        fit: BoxFit.cover,
+        imageUrl,
+        fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
-            _fallbackPlaceholder(name),
+            Icon(icon, color: color, size: 28),
       );
-    } else if (url.startsWith('http')) {
+    }
+    if (imageUrl.startsWith('http')) {
       return Image.network(
-        url,
-        fit: BoxFit.cover,
+        imageUrl,
+        fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) =>
-            _fallbackPlaceholder(name),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            color: const Color(0xFFF1F5F9),
-            child: const Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
+            Icon(icon, color: color, size: 28),
+      );
+    }
+    return Icon(icon, color: color, size: 28);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Popular Categories Data & Circular Horizontal Item
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PopularCategoryData {
+  final String id;
+  final String title;
+  final String desc;
+  final String imageUrl;
+  final IconData icon;
+  final Color color;
+  final Color bgColor;
+
+  const _PopularCategoryData({
+    required this.id,
+    required this.title,
+    required this.desc,
+    required this.imageUrl,
+    required this.icon,
+    required this.color,
+    required this.bgColor,
+  });
+}
+
+const List<_PopularCategoryData> _popularCategories = [
+  _PopularCategoryData(
+    id: 'AC',
+    title: 'AC Service',
+    desc: 'Deep jet wash, cooling coil sanitization & gas refill',
+    imageUrl: 'assets/images/ac.png',
+    icon: Icons.ac_unit_rounded,
+    color: Color(0xFF0284C7),
+    bgColor: Color(0xFFE0F2FE),
+  ),
+  _PopularCategoryData(
+    id: 'Electrical',
+    title: 'Electrical',
+    desc: 'Switchboard restoration, home wiring & short circuit fix',
+    imageUrl: 'assets/images/electrician.png',
+    icon: Icons.bolt_rounded,
+    color: Color(0xFF2563EB),
+    bgColor: Color(0xFFEFF6FF),
+  ),
+  _PopularCategoryData(
+    id: 'Plumbing',
+    title: 'Plumbing',
+    desc: 'Pipe leakages, taps, basin repair & drainage unblock',
+    imageUrl: 'assets/images/plumbing.png',
+    icon: Icons.plumbing_rounded,
+    color: Color(0xFF0D9488),
+    bgColor: Color(0xFFF0FDFA),
+  ),
+  _PopularCategoryData(
+    id: 'RO',
+    title: 'RO Purifier',
+    desc: 'Sediment filter, carbon block, RO membrane & TDS balance',
+    imageUrl: 'assets/images/ro.png',
+    icon: Icons.water_drop_rounded,
+    color: Color(0xFF0284C7),
+    bgColor: Color(0xFFF0F9FF),
+  ),
+  _PopularCategoryData(
+    id: 'Washing Machine',
+    title: 'Washing Machine',
+    desc: 'Drum spin balance, drain valve & motor repair',
+    imageUrl: 'assets/images/technician_avatar.jpg',
+    icon: Icons.local_laundry_service_rounded,
+    color: Color(0xFF7C3AED),
+    bgColor: Color(0xFFF5F3FF),
+  ),
+  _PopularCategoryData(
+    id: 'Cleaning',
+    title: 'Deep Cleaning',
+    desc: 'Kitchen, bathroom, sofa & full home sanitization',
+    imageUrl: 'assets/images/refrigerator_technician.jpg',
+    icon: Icons.cleaning_services_rounded,
+    color: Color(0xFFEA580C),
+    bgColor: Color(0xFFFFF7ED),
+  ),
+  _PopularCategoryData(
+    id: 'Painting',
+    title: 'Painting',
+    desc: 'Wall putty, waterproof primer & premium emulsion paint',
+    imageUrl: 'assets/images/products/solar_junction_box.jpg',
+    icon: Icons.format_paint_rounded,
+    color: Color(0xFF10B981),
+    bgColor: Color(0xFFECFDF5),
+  ),
+  _PopularCategoryData(
+    id: 'Pest Control',
+    title: 'Pest Control',
+    desc: 'Herbal odorless gel for cockroaches, termites & bugs',
+    imageUrl: 'assets/images/products/fan_capacitor.jpg',
+    icon: Icons.bug_report_rounded,
+    color: Color(0xFFE11D48),
+    bgColor: Color(0xFFFFF1F2),
+  ),
+];
+
+class _PopularCategoryCircleItem extends StatelessWidget {
+  const _PopularCategoryCircleItem({
+    required this.category,
+    required this.onTap,
+  });
+
+  final _PopularCategoryData category;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: 68,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: category.bgColor,
+                border: Border.all(
+                  color: category.color.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: category.color.withValues(alpha: 0.1),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(9.0),
+                  child: _buildImageOrIcon(),
                 ),
               ),
             ),
-          );
-        },
-      );
-    }
-    return _fallbackPlaceholder(name);
+            const SizedBox(height: 6),
+            Text(
+              category.title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTextStyles.labelMd.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: 11.5,
+                color: AppColors.textPrimary,
+                height: 1.15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _fallbackPlaceholder(String name) {
+  Widget _buildImageOrIcon() {
+    if (category.imageUrl.startsWith('assets/')) {
+      return Image.asset(
+        category.imageUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(category.icon, color: category.color, size: 24),
+      );
+    }
+    if (category.imageUrl.startsWith('http')) {
+      return Image.network(
+        category.imageUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            Icon(category.icon, color: category.color, size: 24),
+      );
+    }
+    return Icon(category.icon, color: category.color, size: 24);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recent Booking Card Component
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RecentBookingCard extends StatelessWidget {
+  const _RecentBookingCard({
+    required this.booking,
+    required this.onTap,
+  });
+
+  final ServiceBookingItem booking;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isActive = booking.isActive;
+
     return Container(
-      color: item.bgColor,
-      child: Center(
-        child: Icon(item.icon, size: 36, color: item.color),
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.bgPrimary,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Order ID & Status Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgSecondary,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        booking.orderId,
+                        style: AppTextStyles.labelMd.copyWith(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        booking.category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodySm.copyWith(
+                          color: AppColors.textMuted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildStatusPill(booking.status, booking.statusSubtitle, isActive),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Service Title + Icon
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  booking.serviceIcon,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking.serviceName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.labelMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13.5,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_rounded,
+                          size: 12,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            booking.dateTime,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodySm.copyWith(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 8),
+
+          // Technician, Price & Track Order CTA
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: const BoxDecoration(
+                        color: AppColors.bgSecondary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        size: 16,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            booking.technicianName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            booking.price,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: const Size(60, 28),
+                  side: const BorderSide(color: AppColors.primary),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+                onPressed: onTap,
+                icon: const Icon(
+                  Icons.near_me_rounded,
+                  size: 13,
+                  color: AppColors.primary,
+                ),
+                label: const Text(
+                  'Track Order',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusPill(String status, String subtitle, bool isActive) {
+    Color bg;
+    Color fg;
+    if (isActive) {
+      bg = const Color(0xFF10B981).withValues(alpha: 0.12);
+      fg = const Color(0xFF059669);
+    } else if (status == 'COMPLETED') {
+      bg = const Color(0xFF3B82F6).withValues(alpha: 0.12);
+      fg = const Color(0xFF2563EB);
+    } else {
+      bg = const Color(0xFFEF4444).withValues(alpha: 0.12);
+      fg = const Color(0xFFDC2626);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isActive) ...[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: fg,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            isActive ? 'Active' : status,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: fg,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
