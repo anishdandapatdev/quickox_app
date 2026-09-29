@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickox_technician_app/features/home/screens/home_screen.dart';
+import 'package:quickox_technician_app/features/services/screens/category_detail_screen.dart';
+import 'package:quickox_technician_app/features/services/screens/home_service_categories_screen.dart';
 
 void main() {
   testWidgets('HomeScreen renders image slider and verifies search bar is removed',
@@ -144,5 +146,61 @@ void main() {
 
     expect(find.text('Popular Services'), findsOneWidget);
     expect(find.byType(PageView), findsOneWidget);
+  });
+
+  testWidgets('Tapping Home Service opens HomeServiceCategoriesScreen',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          onNavigateTab: (_) {},
+          autoPlaySlider: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final homeServiceItem = find.text('Home Service');
+    expect(homeServiceItem, findsOneWidget);
+
+    await tester.tap(homeServiceItem);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomeServiceCategoriesScreen), findsOneWidget);
+  });
+
+  testWidgets('Tapping Popular category opens CategoryDetailScreen with category',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HomeScreen(
+          onNavigateTab: (_) {},
+          autoPlaySlider: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final acServiceItem = find.text('AC Service');
+    expect(acServiceItem, findsOneWidget);
+
+    await tester.tap(acServiceItem);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CategoryDetailScreen), findsOneWidget);
   });
 }

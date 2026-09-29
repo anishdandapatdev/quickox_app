@@ -9,6 +9,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../bookings/screens/bookings_screen.dart';
 import '../../services/screens/category_detail_screen.dart';
+import '../../services/screens/home_service_categories_screen.dart';
+import '../../services/screens/sub_services_screen.dart';
 
 /// Customer Home Screen featuring:
 /// - Horizontal auto-scrolling promotional Image Carousel (replaces search bar)
@@ -102,15 +104,24 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onVerticalTapped(ServiceVerticalItem vert) {
-    if (vert.id == 'home_care') {
-      widget.onNavigateTab(1); // Go to services catalog tab
+    if (vert.id == 'home_care' ||
+        vert.name.toLowerCase().contains('home service')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeServiceCategoriesScreen(
+            serviceTitle: vert.name,
+            serviceSubtitle: vert.tagline,
+          ),
+        ),
+      );
     } else {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => CategoryDetailScreen(
-            headerTitle: vert.name,
-            headerSubtitle: vert.tagline,
+          builder: (_) => SubServicesScreen(
+            categoryTitle: vert.name,
+            categorySubtitle: vert.tagline,
           ),
         ),
       );
@@ -338,7 +349,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () => widget.onNavigateTab(1), // go to services
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HomeServiceCategoriesScreen(),
+                    ),
+                  );
+                },
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -389,6 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (_) => CategoryDetailScreen(
+                        categoryName: cat.id,
                         headerTitle: cat.title,
                         headerSubtitle: cat.desc,
                       ),
