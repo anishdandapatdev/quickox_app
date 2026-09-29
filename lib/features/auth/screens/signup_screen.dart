@@ -7,7 +7,6 @@ import '../models/country_code.dart';
 import '../widgets/rounded_phone_input.dart';
 import '../../navigation/main_navigation_screen.dart';
 import '../../../core/services/auth_service.dart';
-import '../widgets/google_account_picker_modal.dart';
 import 'otp_verification_screen.dart';
 import 'profile_setup_screen.dart';
 
@@ -74,16 +73,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
-    GoogleAccount? selectedAccount;
-    if (widget.promptAccountPicker) {
-      selectedAccount = await GoogleAccountPickerModal.show(context);
-      if (selectedAccount == null) return;
-    } else {
-      selectedAccount = AuthService.defaultAccounts.first;
+    setState(() => _isGoogleLoading = true);
+    
+    final user = await AuthService.instance.signInWithGoogle();
+    
+    if (!mounted) return;
+    
+    if (user == null) {
+      setState(() => _isGoogleLoading = false);
+      return;
     }
 
-    setState(() => _isGoogleLoading = true);
-    final user = await AuthService.instance.signInWithGoogle(selectedAccount);
     final emailExists = await AuthService.instance.checkEmailExists(user.email);
 
     if (!mounted) return;

@@ -10,7 +10,6 @@ import '../widgets/rounded_phone_input.dart';
 import 'profile_setup_screen.dart';
 import 'signup_screen.dart';
 import '../../../core/services/auth_service.dart';
-import '../widgets/google_account_picker_modal.dart';
 
 /// Login screen — Phone and password authentication
 /// Follows the Quickox design system: Royal Blue primary, white background.
@@ -120,20 +119,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleLogin() async {
-    GoogleAccount? selectedAccount;
-    if (widget.promptAccountPicker) {
-      selectedAccount = await GoogleAccountPickerModal.show(context);
-      if (selectedAccount == null) {
-        // User closed or dismissed account selector
-        return;
-      }
-    } else {
-      selectedAccount = AuthService.defaultAccounts.first;
-    }
-
     setState(() => _isGoogleLoading = true);
 
-    final user = await AuthService.instance.signInWithGoogle(selectedAccount);
+    final user = await AuthService.instance.signInWithGoogle();
+    
+    if (!mounted) return;
+    
+    if (user == null) {
+      setState(() => _isGoogleLoading = false);
+      return;
+    }
+
     final emailExists = await AuthService.instance.checkEmailExists(user.email);
 
     if (!mounted) return;
