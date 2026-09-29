@@ -28,6 +28,8 @@ class HomeServiceCategoriesScreen extends StatefulWidget {
 class _HomeServiceCategoriesScreenState
     extends State<HomeServiceCategoriesScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchFocused = false;
   final FirebaseServicesService _servicesService = FirebaseServicesService();
 
   String _searchQuery = '';
@@ -38,11 +40,20 @@ class _HomeServiceCategoriesScreenState
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(_handleSearchFocusChange);
     _loadCategories();
+  }
+
+  void _handleSearchFocusChange() {
+    if (mounted) {
+      setState(() => _isSearchFocused = _searchFocusNode.hasFocus);
+    }
   }
 
   @override
   void dispose() {
+    _searchFocusNode.removeListener(_handleSearchFocusChange);
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -139,46 +150,97 @@ class _HomeServiceCategoriesScreenState
                 ),
                 const SizedBox(height: AppSpacing.md),
 
-                // ── Search Bar ────────────────────────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.bgPrimary,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (v) => setState(() => _searchQuery = v),
-                    style: AppTextStyles.bodyMd
-                        .copyWith(color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText:
-                          'Search home categories (AC, plumbing, electrical, etc.)',
-                      hintStyle: AppTextStyles.bodyMd.copyWith(
-                        color: AppColors.textMuted,
-                        fontSize: 13,
+                // ── Search Bar (Capsule Rounded matching Login Screen) ────────
+                GestureDetector(
+                  onTap: () => _searchFocusNode.requestFocus(),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    constraints: const BoxConstraints(minHeight: 52),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgPrimary,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      border: Border.all(
+                        color: _isSearchFocused
+                            ? AppColors.primary
+                            : const Color(0xFFD1D5DB),
+                        width: _isSearchFocused ? 1.8 : 1.2,
                       ),
-                      prefixIcon: const Icon(
-                        Icons.search_rounded,
-                        color: AppColors.textMuted,
-                        size: 22,
-                      ),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 14,
-                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _isSearchFocused
+                              ? AppColors.primary.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                          color: _isSearchFocused
+                              ? AppColors.primary
+                              : const Color(0xFF6B7280),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 22,
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                          color: const Color(0xFFD1D5DB),
+                        ),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            style: AppTextStyles.bodyMd.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            cursorColor: AppColors.primary,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText:
+                                  'Search home categories (AC, plumbing, electrical, etc.)',
+                              hintStyle: AppTextStyles.bodyMd.copyWith(
+                                color: const Color(0xFF9CA3AF),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 12),
+                              filled: false,
+                            ),
+                          ),
+                        ),
+                        if (_searchQuery.isNotEmpty)
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.clear_rounded,
+                                size: 18,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
