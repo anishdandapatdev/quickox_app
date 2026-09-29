@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickox_technician_app/core/services/firebase_services_service.dart';
+import 'package:quickox_technician_app/features/services/screens/book_technician_screen.dart';
 import 'package:quickox_technician_app/features/services/screens/category_detail_screen.dart';
+import 'package:quickox_technician_app/features/services/screens/choose_appointment_slot_screen.dart';
 import 'package:quickox_technician_app/features/services/screens/service_detail_overview_screen.dart';
 import 'package:quickox_technician_app/features/services/screens/services_screen.dart';
+import 'package:quickox_technician_app/shared/widgets/common_widgets.dart';
 
 void main() {
   group('Services Screen & Multi-Screen Flow Tests', () {
@@ -192,6 +195,73 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('BookTechnicianScreen renders Verified banner at end without forward arrow and dynamic categories', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: BookTechnicianScreen(
+            serviceTitle: 'AC Repair & Jet Servicing',
+            parentCategory: 'AC Service',
+            basePrice: 399,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verified banner text is present
+      expect(find.text('Verified Professionals'), findsOneWidget);
+      expect(find.text('Skilled & background verified technicians at your doorstep'), findsOneWidget);
+
+      // Verify no forward arrow icon in the banner
+      expect(find.byIcon(Icons.arrow_forward_ios_rounded), findsNothing);
+
+      // Dynamic AC categories are loaded
+      expect(find.text('Not Cooling'), findsOneWidget);
+      expect(find.text('Gas Leak / Refill'), findsOneWidget);
+
+      // Back button uses AppBackButton
+      expect(find.byType(AppBackButton), findsOneWidget);
+    });
+
+    testWidgets('ChooseAppointmentSlotScreen renders Razorpay option, summary and doorstep booking', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ChooseAppointmentSlotScreen(
+            serviceTitle: 'AC Jet Cleaning',
+            parentCategory: 'AC Service',
+            serviceAddress: 'Chas Road, Purulia, West Bengal 723101',
+            selectedIssue: 'Not Cooling',
+            basePrice: 499,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Title & Back button
+      expect(find.text('Choose Appointment Slot'), findsOneWidget);
+      expect(find.byType(AppBackButton), findsOneWidget);
+
+      // Dynamic dates row is present
+      expect(find.text('1. Select Date'), findsOneWidget);
+
+      // Payment options
+      final doorstepFinder = find.text('Pay on Doorstep (Post Service)');
+      await tester.ensureVisible(doorstepFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pay Online via Razorpay'), findsOneWidget);
+      expect(find.text('Razorpay'), findsWidgets);
+      expect(doorstepFinder, findsOneWidget);
+
+      // Total summary displays dynamic price
+      expect(find.text('₹499'), findsWidgets);
+
+      // Choose Pay on Doorstep
+      await tester.tap(doorstepFinder);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Confirm Booking (Pay ₹499 Later)'), findsOneWidget);
     });
   });
 }

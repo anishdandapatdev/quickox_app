@@ -112,12 +112,15 @@ class _ServiceDetailOverviewScreenState
   }
 
   void _openBookingFlow(BuildContext context) {
+    final priceInt =
+        int.tryParse(_effectivePrice.replaceAll(RegExp(r'[^0-9]'), '')) ?? 249;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => BookTechnicianScreen(
           serviceTitle: _effectiveTitle,
           parentCategory: _effectiveCategory,
+          basePrice: priceInt,
         ),
       ),
     );

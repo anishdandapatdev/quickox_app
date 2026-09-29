@@ -12,10 +12,12 @@ class BookTechnicianScreen extends StatefulWidget {
     super.key,
     this.serviceTitle = 'Electronics Services',
     this.parentCategory = 'Home Service',
+    this.basePrice = 249,
   });
 
   final String serviceTitle;
   final String parentCategory;
+  final int basePrice;
 
   @override
   State<BookTechnicianScreen> createState() => _BookTechnicianScreenState();
@@ -28,48 +30,275 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
   String _serviceAddress = 'Chas Road, Purulia, West Bengal 723101';
   DateTime _selectedDate = DateTime.now();
 
-  final List<_IssueCategory> _issueCategories = const [
-    _IssueCategory(
-      title: 'Power Failure',
-      subtitle: 'No power, tripping, MCB issues',
-      icon: Icons.bolt_rounded,
-    ),
-    _IssueCategory(
-      title: 'Switch & Socket',
-      subtitle: 'Loose, damaged or not working',
-      icon: Icons.toggle_on_outlined,
-    ),
-    _IssueCategory(
-      title: 'Lighting & Fixtures',
-      subtitle: 'Flickering, LED, ceiling lights',
-      icon: Icons.lightbulb_outline_rounded,
-    ),
-    _IssueCategory(
-      title: 'Wiring & Rewiring',
-      subtitle: 'New wiring, old wiring replacement',
-      icon: Icons.cable_rounded,
-    ),
-    _IssueCategory(
-      title: 'Fan',
-      subtitle: 'Ceiling/exhaust fan issues',
-      icon: Icons.mode_fan_off_rounded,
-    ),
-    _IssueCategory(
-      title: 'Appliance Installation',
-      subtitle: 'AC, TV, fridge, etc. installation',
-      icon: Icons.kitchen_rounded,
-    ),
-    _IssueCategory(
-      title: 'MCB & Fuse Box',
-      subtitle: 'MCB trip, fuse issue, box replacement',
-      icon: Icons.settings_input_component_rounded,
-    ),
-    _IssueCategory(
-      title: 'Others',
-      subtitle: 'Other electrical issues',
-      icon: Icons.more_horiz_rounded,
-    ),
-  ];
+  List<_IssueCategory> _getIssueCategories() {
+    final query = '${widget.serviceTitle} ${widget.parentCategory}'.toLowerCase();
+
+    if (query.contains('ac') || query.contains('air condition') || query.contains('cooling')) {
+      return const [
+        _IssueCategory(
+          title: 'Not Cooling',
+          subtitle: 'Weak or no cooling airflow',
+          icon: Icons.ac_unit_rounded,
+        ),
+        _IssueCategory(
+          title: 'Gas Leak / Refill',
+          subtitle: 'Low refrigerant gas, leak fix',
+          icon: Icons.propane_tank_outlined,
+        ),
+        _IssueCategory(
+          title: 'Water Leakage',
+          subtitle: 'Water dripping inside room',
+          icon: Icons.water_drop_outlined,
+        ),
+        _IssueCategory(
+          title: 'Noise / Vibration',
+          subtitle: 'Loud sound from indoor/outdoor unit',
+          icon: Icons.volume_up_outlined,
+        ),
+        _IssueCategory(
+          title: 'Regular Service',
+          subtitle: 'Deep cleaning, foam jet service',
+          icon: Icons.cleaning_services_rounded,
+        ),
+        _IssueCategory(
+          title: 'Installation',
+          subtitle: 'Uninstallation or new AC fit',
+          icon: Icons.build_rounded,
+        ),
+        _IssueCategory(
+          title: 'Power / Tripping',
+          subtitle: 'AC not turning on or tripping MCB',
+          icon: Icons.bolt_rounded,
+        ),
+        _IssueCategory(
+          title: 'Others',
+          subtitle: 'PCB repair, remote sensor, etc.',
+          icon: Icons.more_horiz_rounded,
+        ),
+      ];
+    } else if (query.contains('plumb') ||
+        query.contains('pipe') ||
+        query.contains('water pump') ||
+        query.contains('pump') ||
+        query.contains('tap') ||
+        query.contains('tank')) {
+      return const [
+        _IssueCategory(
+          title: 'Tap & Mixer',
+          subtitle: 'Dripping tap, mixer repair',
+          icon: Icons.water_damage_rounded,
+        ),
+        _IssueCategory(
+          title: 'Pipe Leakage',
+          subtitle: 'Concealed or open pipe leak',
+          icon: Icons.plumbing_rounded,
+        ),
+        _IssueCategory(
+          title: 'Blockage / Drain',
+          subtitle: 'Blocked sink, basin or drain',
+          icon: Icons.cleaning_services_rounded,
+        ),
+        _IssueCategory(
+          title: 'Toilet & Flush',
+          subtitle: 'Flush tank, seat, jet spray',
+          icon: Icons.wc_rounded,
+        ),
+        _IssueCategory(
+          title: 'Water Tank',
+          subtitle: 'Tank overflow, valve, cleaning',
+          icon: Icons.storage_rounded,
+        ),
+        _IssueCategory(
+          title: 'Motor & Pump',
+          subtitle: 'Submersible, booster pump issue',
+          icon: Icons.settings_power_rounded,
+        ),
+        _IssueCategory(
+          title: 'Shower Fitting',
+          subtitle: 'Shower installation or repair',
+          icon: Icons.shower_rounded,
+        ),
+        _IssueCategory(
+          title: 'Others',
+          subtitle: 'General plumbing work',
+          icon: Icons.more_horiz_rounded,
+        ),
+      ];
+    } else if (query.contains('refrigerat') || query.contains('fridge')) {
+      return const [
+        _IssueCategory(
+          title: 'Not Cooling',
+          subtitle: 'Freezer or fridge not cold',
+          icon: Icons.kitchen_rounded,
+        ),
+        _IssueCategory(
+          title: 'Excess Freezing',
+          subtitle: 'Ice buildup in freezer',
+          icon: Icons.ac_unit_rounded,
+        ),
+        _IssueCategory(
+          title: 'Gas Leakage',
+          subtitle: 'Compressor running but no cooling',
+          icon: Icons.propane_tank_outlined,
+        ),
+        _IssueCategory(
+          title: 'Strange Noise',
+          subtitle: 'Compressor or fan humming/rattling',
+          icon: Icons.volume_up_outlined,
+        ),
+        _IssueCategory(
+          title: 'Water Leakage',
+          subtitle: 'Water pooling inside or underneath',
+          icon: Icons.water_drop_outlined,
+        ),
+        _IssueCategory(
+          title: 'Door / Gasket',
+          subtitle: 'Rubber seal loose or not closing',
+          icon: Icons.door_front_door_outlined,
+        ),
+        _IssueCategory(
+          title: 'Power / PCB',
+          subtitle: 'No lights or fridge dead',
+          icon: Icons.bolt_rounded,
+        ),
+        _IssueCategory(
+          title: 'Others',
+          subtitle: 'Thermostat, bulb or general fix',
+          icon: Icons.more_horiz_rounded,
+        ),
+      ];
+    } else if (query.contains('wash') || query.contains('laundry')) {
+      return const [
+        _IssueCategory(
+          title: 'Not Spinning',
+          subtitle: 'Drum not rotating or slow spin',
+          icon: Icons.local_laundry_service_rounded,
+        ),
+        _IssueCategory(
+          title: 'Water Drainage',
+          subtitle: 'Water not draining out',
+          icon: Icons.water_drop_outlined,
+        ),
+        _IssueCategory(
+          title: 'No Water Inlet',
+          subtitle: 'Water not filling up inside drum',
+          icon: Icons.shower_rounded,
+        ),
+        _IssueCategory(
+          title: 'Vibration / Noise',
+          subtitle: 'Violent shaking during spin cycle',
+          icon: Icons.vibration_rounded,
+        ),
+        _IssueCategory(
+          title: 'Power / Error',
+          subtitle: 'Error code on display, no power',
+          icon: Icons.bolt_rounded,
+        ),
+        _IssueCategory(
+          title: 'Door / Lid Issue',
+          subtitle: 'Door lock stuck or broken switch',
+          icon: Icons.lock_outline_rounded,
+        ),
+        _IssueCategory(
+          title: 'Drum Cleaning',
+          subtitle: 'Deep descaling & tub cleaning',
+          icon: Icons.cleaning_services_rounded,
+        ),
+        _IssueCategory(
+          title: 'Others',
+          subtitle: 'Belt, motor or PCB repair',
+          icon: Icons.more_horiz_rounded,
+        ),
+      ];
+    } else if (query.contains('ro') || query.contains('purifier') || query.contains('filter')) {
+      return const [
+        _IssueCategory(
+          title: 'Filter Change',
+          subtitle: 'Sediment, carbon, membrane change',
+          icon: Icons.filter_alt_outlined,
+        ),
+        _IssueCategory(
+          title: 'Bad Taste/Odour',
+          subtitle: 'Water tastes weird or has smell',
+          icon: Icons.local_drink_rounded,
+        ),
+        _IssueCategory(
+          title: 'Water Leakage',
+          subtitle: 'Leakage from pipe or filter body',
+          icon: Icons.water_drop_outlined,
+        ),
+        _IssueCategory(
+          title: 'No Water Flow',
+          subtitle: 'Very slow or zero water dispensing',
+          icon: Icons.speed_rounded,
+        ),
+        _IssueCategory(
+          title: 'Not Powering On',
+          subtitle: 'SMPS adapter or motor dead',
+          icon: Icons.bolt_rounded,
+        ),
+        _IssueCategory(
+          title: 'Continuous Waste',
+          subtitle: 'Waste water draining non-stop',
+          icon: Icons.replay_rounded,
+        ),
+        _IssueCategory(
+          title: 'Installation',
+          subtitle: 'Uninstallation or new RO setup',
+          icon: Icons.build_rounded,
+        ),
+        _IssueCategory(
+          title: 'Others',
+          subtitle: 'TDS issue, UV lamp, pump repair',
+          icon: Icons.more_horiz_rounded,
+        ),
+      ];
+    }
+
+    // Default Electrical / Electronics
+    return const [
+      _IssueCategory(
+        title: 'Power Failure',
+        subtitle: 'No power, tripping, MCB issues',
+        icon: Icons.bolt_rounded,
+      ),
+      _IssueCategory(
+        title: 'Switch & Socket',
+        subtitle: 'Loose, damaged or not working',
+        icon: Icons.toggle_on_outlined,
+      ),
+      _IssueCategory(
+        title: 'Lighting & Fixtures',
+        subtitle: 'Flickering, LED, ceiling lights',
+        icon: Icons.lightbulb_outline_rounded,
+      ),
+      _IssueCategory(
+        title: 'Wiring & Rewiring',
+        subtitle: 'New wiring, old wiring replacement',
+        icon: Icons.cable_rounded,
+      ),
+      _IssueCategory(
+        title: 'Fan',
+        subtitle: 'Ceiling/exhaust fan issues',
+        icon: Icons.mode_fan_off_rounded,
+      ),
+      _IssueCategory(
+        title: 'Appliance Installation',
+        subtitle: 'AC, TV, fridge, etc. installation',
+        icon: Icons.kitchen_rounded,
+      ),
+      _IssueCategory(
+        title: 'MCB & Fuse Box',
+        subtitle: 'MCB trip, fuse issue, box replacement',
+        icon: Icons.settings_input_component_rounded,
+      ),
+      _IssueCategory(
+        title: 'Others',
+        subtitle: 'Other electrical issues',
+        icon: Icons.more_horiz_rounded,
+      ),
+    ];
+  }
 
   @override
   void dispose() {
@@ -212,6 +441,10 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
   }
 
   void _navigateToChooseSlot() {
+    final categories = _getIssueCategories();
+    final selectedCategory =
+        categories[_selectedIssueIndex.clamp(0, categories.length - 1)];
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -219,7 +452,11 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
           serviceTitle: widget.serviceTitle,
           parentCategory: widget.parentCategory,
           serviceAddress: _serviceAddress,
-          selectedIssue: _issueCategories[_selectedIssueIndex].title,
+          selectedIssue: selectedCategory.title,
+          issueDesc: _descController.text.trim(),
+          uploadedPhotos: List.from(_uploadedPhotos),
+          preferredDate: _selectedDate,
+          basePrice: widget.basePrice,
         ),
       ),
     );
@@ -259,11 +496,6 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
 
                     const SizedBox(height: 14),
 
-                    // ── Verified Professionals Banner ───────────────────────
-                    _buildVerifiedProfessionalsBanner(),
-
-                    const SizedBox(height: 10),
-
                     // ── 3 Badges Row ────────────────────────────────────────
                     _buildBadgesRow(),
 
@@ -296,6 +528,11 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
 
                     // ── Safe, Verified & Professional Service Banner ────────
                     _buildSafeServiceBanner(),
+
+                    const SizedBox(height: 14),
+
+                    // ── Verified Professionals Banner (Placed at the end, no forward icon) ─
+                    _buildVerifiedProfessionalsBanner(),
 
                     const SizedBox(height: 24),
                   ],
@@ -362,7 +599,7 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
     );
   }
 
-  // ── Verified Professionals Banner ─────────────────────────────────────────
+  // ── Verified Professionals Banner (At the end, without forward icon) ──────
 
   Widget _buildVerifiedProfessionalsBanner() {
     return Container(
@@ -417,11 +654,6 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
               ],
             ),
           ),
-          const Icon(
-            Icons.arrow_forward_ios_rounded,
-            size: 14,
-            color: Color(0xFF2563EB),
-          ),
         ],
       ),
     );
@@ -462,6 +694,8 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
   // ── 1. Select the Issue Category ──────────────────────────────────────────
 
   Widget _buildSelectIssueCategorySection() {
+    final categories = _getIssueCategories();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -476,11 +710,16 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
                 color: Color(0xFF0F172A),
               ),
             ),
-            Text(
-              'Category: ${widget.serviceTitle}',
-              style: const TextStyle(
-                fontSize: 10.5,
-                color: Color(0xFF64748B),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Category: ${widget.serviceTitle}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 10.5,
+                  color: Color(0xFF64748B),
+                ),
               ),
             ),
           ],
@@ -491,7 +730,7 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _issueCategories.length,
+          itemCount: categories.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
             mainAxisExtent: 110,
@@ -499,7 +738,7 @@ class _BookTechnicianScreenState extends State<BookTechnicianScreen> {
             mainAxisSpacing: 8,
           ),
           itemBuilder: (context, index) {
-            final item = _issueCategories[index];
+            final item = categories[index];
             final isSelected = _selectedIssueIndex == index;
 
             return GestureDetector(
