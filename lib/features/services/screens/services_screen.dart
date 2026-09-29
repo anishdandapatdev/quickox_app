@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/firebase_services_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import 'book_technician_screen.dart';
 import 'category_detail_screen.dart';
 import 'home_service_categories_screen.dart';
 import 'sub_services_screen.dart';
@@ -29,11 +31,16 @@ class ServicesScreen extends StatefulWidget {
   State<ServicesScreen> createState() => _ServicesScreenState();
 }
 
-class _ServicesScreenState extends State<ServicesScreen> {
+class _ServicesScreenState extends State<ServicesScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearchFocused = false;
   final FirebaseServicesService _servicesService = FirebaseServicesService();
+
+  late final AnimationController _fabAnimController;
+  late final Animation<double> _fabExpandAnimation;
+  Timer? _fabCollapseTimer;
 
   String _searchQuery = '';
   List<ServiceCategoryItem> _homeCategories =
@@ -143,6 +150,24 @@ class _ServicesScreenState extends State<ServicesScreen> {
   void initState() {
     super.initState();
     _searchFocusNode.addListener(_handleSearchFocusChange);
+
+    _fabAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _fabExpandAnimation = CurvedAnimation(
+      parent: _fabAnimController,
+      curve: Curves.easeInOutCubic,
+    );
+    _fabAnimController.value = 1.0; // Start expanded with text
+
+    // After user opens screen, smoothly decrease/collapse to only show search icon
+    _fabCollapseTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (mounted) {
+        _fabAnimController.reverse();
+      }
+    });
+
     _loadCategories();
   }
 
@@ -154,6 +179,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
   @override
   void dispose() {
+    _fabCollapseTimer?.cancel();
+    _fabAnimController.dispose();
     _searchFocusNode.removeListener(_handleSearchFocusChange);
     _searchFocusNode.dispose();
     _searchController.dispose();
@@ -231,6 +258,8 @@ class _ServicesScreenState extends State<ServicesScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
+      floatingActionButton: _buildBookInspectionFab(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadCategories,
@@ -349,109 +378,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
-
-                // ── Action Buttons Row ─────────────────────────────────────────
-                Row(
-                  children: [
-                    // Book Inspection Button (Filled Blue)
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 4,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        onPressed: () {
-                          widget.onNavigateTab?.call(3); // Book tab
-                        },
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.calendar_month_outlined,
-                              size: 16,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                'Book Inspection',
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 2),
-                            Icon(
-                              Icons.arrow_forward_rounded,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-
-                    // View Membership Plans Button (Outlined Blue)
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: const BorderSide(
-                              color: AppColors.primary, width: 1.5),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 4,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        onPressed: () {
-                          widget.onNavigateTab?.call(2); // Membership tab
-                        },
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.workspace_premium_outlined,
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                'Membership Plans',
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
 
                 // ── Section Title: Explore All Categories ──────────────────────
                 Row(
@@ -659,12 +586,101 @@ class _ServicesScreenState extends State<ServicesScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xxl),
+                const SizedBox(height: 80),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  void _onBookInspectionTapped() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const BookTechnicianScreen(
+          serviceTitle: 'Doorstep Inspection',
+          parentCategory: 'Home Service',
+          basePrice: 199,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookInspectionFab() {
+    return AnimatedBuilder(
+      animation: _fabExpandAnimation,
+      builder: (context, child) {
+        return Tooltip(
+          message: 'Book Inspection',
+          child: Material(
+            color: Colors.transparent,
+            elevation: 6,
+            shadowColor: AppColors.primary.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            child: InkWell(
+              onTap: _onBookInspectionTapped,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              child: Ink(
+                height: 52,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 14 + (6 * _fabExpandAnimation.value),
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.search_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    ClipRect(
+                      child: SizeTransition(
+                        sizeFactor: _fabExpandAnimation,
+                        axis: Axis.horizontal,
+                        axisAlignment: -1.0,
+                        child: FadeTransition(
+                          opacity: _fabExpandAnimation,
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 8, right: 4),
+                            child: Text(
+                              'Book Inspection',
+                              maxLines: 1,
+                              overflow: TextOverflow.clip,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

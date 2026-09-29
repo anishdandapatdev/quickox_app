@@ -18,10 +18,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Header elements
+      // Header elements: Membership Plans removed, Book Inspection is animated floating button with search icon
       expect(find.text('Services'), findsOneWidget);
-      expect(find.text('Book Inspection'), findsOneWidget);
-      expect(find.text('Membership Plans'), findsOneWidget);
+      expect(find.text('Membership Plans'), findsNothing);
+      expect(find.byIcon(Icons.search_rounded), findsWidgets);
 
       // Section title
       expect(find.text('Explore All Categories'), findsOneWidget);
@@ -39,6 +39,29 @@ void main() {
       // Trust banner
       expect(find.text('Why Choose Quickox?'), findsOneWidget);
       expect(find.text('Verified\nProfessionals'), findsOneWidget);
+    });
+
+    testWidgets('ServicesScreen floating Book Inspection button with search icon navigates to BookTechnicianScreen', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ServicesScreen(),
+        ),
+      );
+      await tester.pump();
+
+      // Initially shows Book Inspection label alongside search icon
+      expect(find.text('Book Inspection'), findsOneWidget);
+
+      // Find floating action button with search icon
+      final fab = find.byTooltip('Book Inspection');
+      expect(fab, findsOneWidget);
+
+      // Tap floating button
+      await tester.tap(fab);
+      await tester.pumpAndSettle();
+
+      // Navigated to BookTechnicianScreen
+      expect(find.byType(BookTechnicianScreen), findsOneWidget);
     });
 
     testWidgets('ServicesScreen search filters services dynamically', (WidgetTester tester) async {
