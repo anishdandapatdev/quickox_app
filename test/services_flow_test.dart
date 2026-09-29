@@ -16,7 +16,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Header elements
-      expect(find.text('All Service Categories'), findsOneWidget);
+      expect(find.text('Services'), findsOneWidget);
       expect(find.text('Book Inspection'), findsOneWidget);
       expect(find.text('Membership Plans'), findsOneWidget);
 

@@ -87,167 +87,17 @@ class _ServicesScreenState extends State<ServicesScreen> {
               children: [
                 const SizedBox(height: AppSpacing.md),
 
-                // ── Header Section with Technician Hero Illustration ─────────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Left: Title & Subtitle
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'All Service Categories',
-                            style: AppTextStyles.h2.copyWith(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              height: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Select any category below to browse services, book instantly and get it done at your doorstep.',
-                            style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              height: 1.35,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Right: Technician with Backdrop and Floating Badge
-                    SizedBox(
-                      width: 125,
-                      height: 125,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: Alignment.bottomCenter,
-                        children: [
-                          Positioned(
-                            top: 4,
-                            right: 0,
-                            child: Container(
-                              width: 108,
-                              height: 112,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE0F2FE),
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(54),
-                                  topRight: Radius.circular(54),
-                                  bottomLeft: Radius.circular(54),
-                                  bottomRight: Radius.circular(20),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 2,
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                bottomRight: Radius.circular(20),
-                              ),
-                              child: Image.asset(
-                                AppAssets.technicianAvatar,
-                                height: 120,
-                                width: 105,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, e, s) => Image.asset(
-                                  AppAssets.technicianRohit,
-                                  height: 120,
-                                  width: 105,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, e2, s2) => Image.network(
-                                    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=400&q=80',
-                                    height: 120,
-                                    width: 105,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, e3, s3) => Container(
-                                      height: 120,
-                                      width: 105,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFBAE6FD),
-                                      ),
-                                      child: const Center(
-                                        child: Icon(
-                                          Icons.engineering_rounded,
-                                          size: 48,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 16,
-                            left: 0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.08),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.verified_user_rounded,
-                                    color: Color(0xFF0F172A),
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Trusted',
-                                        style: TextStyle(
-                                          fontSize: 8.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF0F172A),
-                                          height: 1.1,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Experts',
-                                        style: TextStyle(
-                                          fontSize: 8.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: Color(0xFF0F172A),
-                                          height: 1.1,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                // ── Header Section ───────────────────────────────────────────
+                Text(
+                  'Services',
+                  style: AppTextStyles.h2.copyWith(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.4,
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.md),
 
                 // ── Search Bar ────────────────────────────────────────────────
                 Container(
@@ -425,14 +275,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tap on any category card below to view and book services.',
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.sm),
 
                 // ── Category Cards List (Card image + title name cleanly) ─────
                 ListView.separated(
