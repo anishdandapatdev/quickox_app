@@ -3,6 +3,47 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../features/membership/screens/membership_screen.dart';
 
+/// Model representing an active user membership subscription in Firestore
+class UserSubscription {
+  final String id;
+  final String planId;
+  final String planName;
+  final String bhk;
+  final int durationMonths;
+  final int totalPaid;
+  final String status;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String? transactionId;
+  final String? razorpayPaymentId;
+  final String? userId;
+
+  const UserSubscription({
+    required this.id,
+    required this.planId,
+    required this.planName,
+    required this.bhk,
+    required this.durationMonths,
+    required this.totalPaid,
+    required this.status,
+    required this.startDate,
+    required this.endDate,
+    this.transactionId,
+    this.razorpayPaymentId,
+    this.userId,
+  });
+
+  bool get isActive {
+    if (status.toLowerCase() != 'active') return false;
+    return endDate.isAfter(DateTime.now());
+  }
+
+  int get daysRemaining {
+    final diff = endDate.difference(DateTime.now()).inDays;
+    return diff > 0 ? diff : 0;
+  }
+}
+
 /// Service connecting the Flutter app to Firebase Firestore for the 'home-service-haldia' project.
 /// Mirrors web admin (home-service_admin/src/pages/Membership.jsx) and web client (home_service_web/src/features/plans/PlansPage.jsx).
 class FirebaseMembershipService {
@@ -437,6 +478,73 @@ class FirebaseMembershipService {
     }
 
     return defaultCoupons;
+  }
+
+  /// Fetches the user's active membership subscription from Firestore `subscriptions`
+  Future<UserSubscription?> fetchActiveSubscription(String? userId, [String? userPhone]) async {
+    if ((userId == null || userId.isEmpty) && (userPhone == null || userPhone.isEmpty)) {
+      return null;
+    }
+    try {
+      final uri = Uri.parse('$firestoreBaseUrl/subscriptions?pageSize=50');
+      final response = await _client.get(uri).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final docs = data['documents'] as List<dynamic>?;
+        if (docs != null && docs.isNotEmpty) {
+          final now = DateTime.now();
+          for (final doc in docs) {
+            final f = doc['fields'] as Map<String, dynamic>?;
+            if (f == null) continue;
+
+            final docUserId = f['userId']?['stringValue']?.toString() ?? '';
+            final docPhone = f['userPhone']?['stringValue']?.toString() ?? '';
+            final status = f['status']?['stringValue']?.toString() ?? '';
+
+            final matchesUser = (userId != null && userId.isNotEmpty && docUserId == userId) ||
+                (userPhone != null && userPhone.isNotEmpty && docPhone.isNotEmpty && docPhone == userPhone);
+
+            if (matchesUser && status.toLowerCase() == 'active') {
+              final endStr = f['endDate']?['timestampValue']?.toString() ?? '';
+              final startStr = f['startDate']?['timestampValue']?.toString() ?? '';
+              final endDate = DateTime.tryParse(endStr) ?? now.add(const Duration(days: 30));
+              final startDate = DateTime.tryParse(startStr) ?? now;
+
+              if (endDate.isAfter(now)) {
+                final subId = f['id']?['stringValue']?.toString() ??
+                    (doc['name'] as String).split('/').last;
+                final planId = f['planId']?['stringValue']?.toString() ?? '';
+                final planName = f['planName']?['stringValue']?.toString() ?? 'Membership Plan';
+                final bhk = f['bhk']?['stringValue']?.toString() ?? '';
+                final duration = int.tryParse(f['durationMonths']?['integerValue']?.toString() ?? '1') ?? 1;
+                final paid = int.tryParse(f['totalPaid']?['integerValue']?.toString() ?? '0') ?? 0;
+                final txnId = f['transactionId']?['stringValue']?.toString();
+                final razorpayId = f['razorpayPaymentId']?['stringValue']?.toString();
+
+                return UserSubscription(
+                  id: subId,
+                  planId: planId,
+                  planName: planName,
+                  bhk: bhk,
+                  durationMonths: duration,
+                  totalPaid: paid,
+                  status: status,
+                  startDate: startDate,
+                  endDate: endDate,
+                  transactionId: txnId,
+                  razorpayPaymentId: razorpayId,
+                  userId: docUserId,
+                );
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[FirebaseMembershipService] fetchActiveSubscription error: $e');
+    }
+    return null;
   }
 
   /// Submits an active membership purchase to Firebase Firestore `subscriptions`

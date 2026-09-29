@@ -105,12 +105,14 @@ class _MembershipScreenState extends State<MembershipScreen> {
   // Selected BHK filter: 'All', '1 RK', '1 BHK', '1.5 BHK', '2 BHK', '2.5 BHK', '3 BHK'
   String _selectedBhkFilter = 'All';
 
-  // Active membership state (mock data for demo)
-  final bool _hasActiveSubscription = true;
+  // Active membership state loaded dynamically from Firestore
+  UserSubscription? _activeSubscription;
+  bool _isLoading = true;
 
-  // Dynamic live data from Firebase with fallback
-  List<MembershipPlanItem> _plans = FirebaseMembershipService.defaultPlans;
-  List<MembershipCoupon> _availableCoupons = FirebaseMembershipService.defaultCoupons;
+  // Dynamic live data from Firebase Firestore `membership_config/prices` & `coupons`
+  List<MembershipPlanItem> _plans = [];
+  List<MembershipCoupon> _availableCoupons = [];
+
   @override
   void initState() {
     super.initState();
@@ -121,254 +123,37 @@ class _MembershipScreenState extends State<MembershipScreen> {
     });
   }
 
-  /// Realtime fetch from Firestore `membership_config/prices` & `coupons`
+  /// Realtime fetch from Firestore `membership_config/prices`, `coupons`, & `subscriptions`
   Future<void> _loadFirebaseData() async {
+    setState(() => _isLoading = true);
     try {
-      final remotePlans = await _firebaseService.fetchPlans();
-      final remoteCoupons = await _firebaseService.fetchCoupons();
+      final user = AuthService.instance.currentUser;
+      final results = await Future.wait([
+        _firebaseService.fetchPlans(),
+        _firebaseService.fetchCoupons(),
+        _firebaseService.fetchActiveSubscription(user?.id, user?.phone),
+      ]);
       if (mounted) {
         setState(() {
-          _plans = remotePlans;
-          _availableCoupons = remoteCoupons;
+          _plans = results[0] as List<MembershipPlanItem>;
+          _availableCoupons = results[1] as List<MembershipCoupon>;
+          _activeSubscription = results[2] as UserSubscription?;
+          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('[MembershipScreen] Sync error: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
-  // 11 BHK-based membership tiers matching web PLAN_KEYS matrix
-  static const List<MembershipPlanItem> _allPlans = [
-    MembershipPlanItem(
-      id: 'p299',
-      name: '₹299 Plan',
-      bhk: '1 RK',
-      subtext: '1 RK Essential Maintenance',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: false,
-      roCovered: false,
-      monthlyPrice: 299,
-      yearlyPrice: 239,
-      yearlyNote: '₹239/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC & RO service not included ❌',
-        '30-day labor warranty',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p399',
-      name: '₹399 Plan',
-      bhk: '1 BHK',
-      subtext: '1 BHK Standard Care',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: false,
-      monthlyPrice: 399,
-      yearlyPrice: 319,
-      yearlyNote: '₹319/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC service included ✅',
-        'RO service not included ❌',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p499',
-      name: '₹499 Plan',
-      bhk: '1.5 BHK',
-      subtext: '1.5 BHK Smart Coverage',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: false,
-      monthlyPrice: 499,
-      yearlyPrice: 399,
-      yearlyNote: '₹399/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC Service Included ✅',
-        'RO Service Not Included ❌',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p599',
-      name: '₹599 Plan',
-      bhk: '2 BHK',
-      subtext: '2 BHK with RO Care',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 599,
-      yearlyPrice: 479,
-      yearlyNote: '₹479/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC Service Included ✅',
-        'RO Service Included 💧✅',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p699',
-      name: '₹699 Plan',
-      bhk: '2 BHK',
-      subtext: '2 BHK Total Home Care',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 699,
-      yearlyPrice: 559,
-      yearlyNote: '₹559/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'Total home care coverage',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p799',
-      name: '₹799 Plan',
-      bhk: '2.5 BHK',
-      subtext: '2.5 BHK Family Shield',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 799,
-      yearlyPrice: 639,
-      yearlyNote: '₹639/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p899',
-      name: '₹899 Plan',
-      bhk: '2 BHK',
-      subtext: '2 BHK Premium Protection',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 899,
-      yearlyPrice: 719,
-      isPopular: true,
-      popularLabel: 'Most Popular',
-      yearlyNote: '₹719/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-        'Priority Customer Support',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p999',
-      name: '₹999 Plan',
-      bhk: '3 BHK',
-      subtext: '3 BHK Complete Care',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits / month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 999,
-      yearlyPrice: 799,
-      yearlyNote: '₹799/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits / month',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-        'Priority Customer Support',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p1199',
-      name: '₹1,199 Plan',
-      bhk: '2 BHK',
-      subtext: '2 BHK + Add-on Service',
-      inspection: '1 Home Inspection',
-      visits: '3 Visits + 1 Add-on / mo',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 1199,
-      yearlyPrice: 959,
-      yearlyNote: '₹959/mo on yearly billing (Save 20%)',
-      features: [
-        '1 Home Inspection',
-        '3 Visits + 1 Add-on Service per month',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-        'Priority Support',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p1599',
-      name: '₹1,599 Plan',
-      bhk: '3 BHK',
-      subtext: '3 BHK Total Home Care',
-      inspection: 'Total Home Care (1 Inspection)',
-      visits: '4 Visits / month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 1599,
-      yearlyPrice: 1279,
-      yearlyNote: '₹1,279/mo on yearly billing (Save 20%)',
-      features: [
-        'Total Home Care (1 Inspection)',
-        '4 Visits / month',
-        'One add-on service per month',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-        'Express Service Booking',
-      ],
-    ),
-    MembershipPlanItem(
-      id: 'p2199',
-      name: '₹2,199 Plan',
-      bhk: '2 BHK',
-      subtext: 'Ultimate VIP Care & 24x7 Support',
-      inspection: '4 Home Inspections / Month',
-      visits: '4 Maintenance Visits / Month',
-      acCovered: true,
-      roCovered: true,
-      monthlyPrice: 2199,
-      yearlyPrice: 1759,
-      isPopular: true,
-      popularLabel: 'Super Elite VIP',
-      yearlyNote: '₹1,759/mo on yearly billing (Save 20%)',
-      features: [
-        'Total home care & VIP protection',
-        '4 Home Inspections / Month',
-        '4 Maintenance Visits / Month',
-        'One add-on service included',
-        'AC Service Included ✅',
-        'RO Service Included ✅',
-        '24x7 Emergency Support',
-      ],
-    ),
-  ];
-
   List<MembershipPlanItem> get _filteredPlans {
-    final source = _plans.isNotEmpty ? _plans : _allPlans;
     if (_selectedBhkFilter == 'All') {
-      return source;
+      return _plans;
     }
-    return source.where((p) => p.bhk == _selectedBhkFilter).toList();
+    return _plans.where((p) => p.bhk == _selectedBhkFilter).toList();
   }
 
   // ── Checkout & Subscription Bottom Sheet Flow ─────────────────────────────
@@ -403,7 +188,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
             userName: customerName,
             userPhone: customerPhone,
             userEmail: customerEmail,
-          );
+          ).then((_) {
+            if (mounted) _loadFirebaseData();
+          });
           _showSuccessConfirmation(
             planName,
             durationMonths,
@@ -700,6 +487,45 @@ class _MembershipScreenState extends State<MembershipScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading && _plans.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F7),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+          title: const Text(
+            'Membership Plans',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF0F172A),
+              letterSpacing: -0.3,
+            ),
+          ),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Loading membership plans from Firestore...',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F7),
       appBar: AppBar(
@@ -741,10 +567,13 @@ class _MembershipScreenState extends State<MembershipScreen> {
             children: [
 
 
-            // ── Active Subscription Status Card (Hero Banner) ─────────────────
-            if (_hasActiveSubscription) ...[
-              _buildActiveMembershipHero(),
+            // ── Active Subscription Status Card or Member Benefits Promo ──────
+            if (_activeSubscription != null && _activeSubscription!.isActive) ...[
+              _buildActiveMembershipHero(_activeSubscription!),
               const SizedBox(height: AppSpacing.lg),
+            ] else ...[
+              _buildMemberBenefitsPromo(),
+              const SizedBox(height: AppSpacing.md),
             ],
 
             // ── Multi-Month Duration Selector Bar ─────────────────────────────
@@ -788,13 +617,45 @@ class _MembershipScreenState extends State<MembershipScreen> {
             ),
             const SizedBox(height: AppSpacing.sm),
 
-            // ── Plan Cards List ───────────────────────────────────────────────
-            ..._filteredPlans.map(
-              (plan) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                child: _buildPlanCard(plan),
+            // ── Plan Cards List or Empty State ────────────────────────────────
+            if (_filteredPlans.isEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.search_off_rounded, size: 36, color: Color(0xFF94A3B8)),
+                    const SizedBox(height: 10),
+                    Text(
+                      'No plans found for "$_selectedBhkFilter"',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Switch filters or pull down to refresh live plans from Firestore.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ] else ...[
+              ..._filteredPlans.map(
+                (plan) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: _buildPlanCard(plan),
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
@@ -803,8 +664,16 @@ class _MembershipScreenState extends State<MembershipScreen> {
   );
   }
 
-  // ── Hero Banner: Active Membership Status ─────────────────────────────────
-  Widget _buildActiveMembershipHero() {
+  String _formatDate(DateTime d) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  // ── Hero Banner: Real Active Membership Status ────────────────────────────
+  Widget _buildActiveMembershipHero(UserSubscription sub) {
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -861,9 +730,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
                   ],
                 ),
               ),
-              const Text(
-                'Expires in 42 Days',
-                style: TextStyle(
+              Text(
+                'Expires in ${sub.daysRemaining} Days',
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF94A3B8),
@@ -872,9 +741,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          const Text(
-            '₹899 Plan — 2 BHK Premium Protection',
-            style: TextStyle(
+          Text(
+            sub.bhk.isNotEmpty ? '${sub.planName} — ${sub.bhk}' : sub.planName,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -882,55 +751,43 @@ class _MembershipScreenState extends State<MembershipScreen> {
             ),
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Zero labor charge on all bookings • Valid until 15 Nov 2026',
-            style: TextStyle(
+          Text(
+            'Zero labor charge on all bookings • Valid until ${_formatDate(sub.endDate)}',
+            style: const TextStyle(
               fontSize: 12,
               color: Color(0xFF94A3B8),
             ),
           ),
           const SizedBox(height: 14),
 
-          // Visits progress bar
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Flexible(
-                    child: Text(
-                      'Monthly Maintenance Visits',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFE2E8F0),
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+          // Duration & Status Info Row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Duration: ${sub.durationMonths} ${sub.durationMonths == 1 ? "Month" : "Months"}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFE2E8F0),
                   ),
-                  SizedBox(width: 8),
-                  Text(
-                    '2 of 3 Left',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF38BDF8),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.full),
-                child: const LinearProgressIndicator(
-                  value: 0.33,
-                  minHeight: 6,
-                  backgroundColor: Color(0xFF334155),
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
-              ),
-            ],
+                Text(
+                  'Paid ₹${sub.totalPaid}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF38BDF8),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -958,10 +815,12 @@ class _MembershipScreenState extends State<MembershipScreen> {
                     ),
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Opening service catalogue with 0 labor charge!'),
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MainNavigationScreen(initialIndex: 1),
                       ),
+                      (route) => false,
                     );
                   },
                 ),
@@ -981,15 +840,85 @@ class _MembershipScreenState extends State<MembershipScreen> {
                   ),
                 ),
                 onPressed: () {
-                  final list = _plans.isNotEmpty ? _plans : _allPlans;
-                  _openCheckoutSheet(list.firstWhere(
-                    (p) => p.id == 'p899',
-                    orElse: () => list.first,
-                  ));
+                  if (_plans.isNotEmpty) {
+                    final target = _plans.firstWhere(
+                      (p) => p.id == sub.planId,
+                      orElse: () => _plans.first,
+                    );
+                    _openCheckoutSheet(target);
+                  }
                 },
                 child: const Text(
-                  'Extend',
+                  'Renew',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Promo Banner: Shown When User Does Not Have Active Subscription ───────
+  Widget _buildMemberBenefitsPromo() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x18000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Color(0xFFFBBF24),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quickox Home Care Membership',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Zero labor fee • Free inspections • Priority technician visits',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
