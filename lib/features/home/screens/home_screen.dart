@@ -10,6 +10,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../bookings/screens/bookings_screen.dart';
 import '../../services/screens/category_detail_screen.dart';
 import '../../services/screens/home_service_categories_screen.dart';
+import '../../services/screens/service_detail_overview_screen.dart';
 import '../../services/screens/sub_services_screen.dart';
 
 /// Customer Home Screen featuring:
@@ -457,7 +458,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   .map(
                     (service) => _ServiceListCard(
                       service: service,
-                      onBook: () => widget.onNavigateTab(1),
+                      onBook: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ServiceDetailOverviewScreen(
+                              service: service,
+                              serviceTitle: service.title,
+                              serviceSubtitle: service.desc,
+                              parentCategory: service.category,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   )
                   .toList(),
@@ -793,7 +806,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: bookings.take(2).map((booking) {
               return _RecentBookingCard(
                 booking: booking,
-                onTap: () => widget.onNavigateTab(3),
+                onTap: () => showBookingDetailsSheet(context, booking),
               );
             }).toList(),
           ),
@@ -1149,21 +1162,26 @@ class _ServiceListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.bgPrimary,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onBook,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.bgPrimary,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1349,6 +1367,8 @@ class _ServiceListCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
+    ),
     );
   }
 
@@ -1682,7 +1702,9 @@ class _RecentBookingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isActive = booking.isActive;
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -1892,6 +1914,7 @@ class _RecentBookingCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 
