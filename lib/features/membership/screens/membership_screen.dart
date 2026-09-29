@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/auth_service.dart';
@@ -1257,19 +1258,23 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
         ? ((baseSubtotal * _appliedCoupon!.discountPercentage) / 100).round()
         : 0;
     final totalPayable = (baseSubtotal - couponDiscount).clamp(0, 999999);
+    final mediaQuery = MediaQuery.of(context);
+    final bottomInset = max(mediaQuery.viewInsets.bottom, mediaQuery.padding.bottom);
 
     return Container(
       padding: EdgeInsets.only(
         top: 20,
         left: 20,
         right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: bottomInset + 16,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
+        top: false,
+        bottom: false,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

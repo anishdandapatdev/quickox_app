@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/services/booking_payment_service.dart';
@@ -364,7 +365,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Quickox Razorpay Checkout</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -379,6 +380,7 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
       justify-content: center;
       text-align: center;
       overflow: hidden;
+      padding-bottom: 12px;
     }
     .spinner-wrap {
       display: flex;
@@ -517,6 +519,13 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
         appBar: AppBar(
           backgroundColor: const Color(0xFF0C2340),
           elevation: 0,
+          systemOverlayStyle: const SystemUiOverlayStyle(
+            statusBarColor: Color(0xFF0C2340),
+            statusBarIconBrightness: Brightness.light,
+            systemNavigationBarColor: Color(0xFF0C2340),
+            systemNavigationBarIconBrightness: Brightness.light,
+            systemNavigationBarDividerColor: Colors.transparent,
+          ),
           leading: IconButton(
             icon: const Icon(Icons.close_rounded, color: Colors.white),
             onPressed: _confirmCancel,
@@ -573,38 +582,45 @@ class _RazorpayWebViewScreenState extends State<RazorpayWebViewScreen> {
             ),
           ],
         ),
-        body: Stack(
-          children: [
-            // ── 1. WebView Widget ─────────────────────────────────────────────
-            if (_webViewController != null && !_hasWebViewError)
-              WebViewWidget(controller: _webViewController!),
+        body: SafeArea(
+          top: false,
+          bottom: true,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Stack(
+              children: [
+                // ── 1. WebView Widget ─────────────────────────────────────────────
+                if (_webViewController != null && !_hasWebViewError)
+                  WebViewWidget(controller: _webViewController!),
 
-            // ── 2. Connecting State (Order Creation on Backend) ───────────────
-            if (_webViewController == null && !_hasWebViewError)
-              _buildConnectingView(),
+                // ── 2. Connecting State (Order Creation on Backend) ───────────────
+                if (_webViewController == null && !_hasWebViewError)
+                  _buildConnectingView(),
 
-            // ── 3. Fatal Error View with Retry (No dummy simulation) ──────────
-            if (_hasWebViewError)
-              _buildFatalErrorView(),
+                // ── 3. Fatal Error View with Retry (No dummy simulation) ──────────
+                if (_hasWebViewError)
+                  _buildFatalErrorView(),
 
-            // ── 4. Top Progress Indicator ─────────────────────────────────────
-            if (_isLoading && !_hasWebViewError)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: LinearProgressIndicator(
-                  value: _loadingProgress,
-                  backgroundColor: Colors.transparent,
-                  color: const Color(0xFF2563EB),
-                  minHeight: 3,
-                ),
-              ),
+                // ── 4. Top Progress Indicator ─────────────────────────────────────
+                if (_isLoading && !_hasWebViewError)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: LinearProgressIndicator(
+                      value: _loadingProgress,
+                      backgroundColor: Colors.transparent,
+                      color: const Color(0xFF2563EB),
+                      minHeight: 3,
+                    ),
+                  ),
 
-            // ── 5. Server Verification Overlay ────────────────────────────────
-            if (_isVerifying)
-              _buildVerifyingOverlay(),
-          ],
+                // ── 5. Server Verification Overlay ────────────────────────────────
+                if (_isVerifying)
+                  _buildVerifyingOverlay(),
+              ],
+            ),
+          ),
         ),
       ),
     );
