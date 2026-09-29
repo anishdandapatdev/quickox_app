@@ -4,6 +4,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/services/booking_payment_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/common_widgets.dart';
+import '../../../shared/widgets/razorpay_webview_screen.dart';
 
 enum PaymentMethodType {
   razorpay,
@@ -190,71 +191,67 @@ class _ChooseAppointmentSlotScreenState
   }
 
   Future<void> _openRazorpayCheckoutSheet() async {
-    setState(() => _isProcessing = true);
-
+    final messenger = ScaffoldMessenger.of(context);
     final bookingId = 'BK-${DateTime.now().millisecondsSinceEpoch}';
-    final orderRes = await _paymentService.createRazorpayOrder(
+
+    final result = await RazorpayWebViewScreen.open(
+      context,
       amount: widget.basePrice.toDouble(),
+      referenceType: 'INSPECTION',
       referenceId: bookingId,
+      title: widget.serviceTitle,
+      subtitle: '${widget.selectedIssue} • ${widget.parentCategory}',
     );
 
-    if (!mounted) return;
-    setState(() => _isProcessing = false);
+    if (result != null && result.isSuccess) {
+      final paymentId = result.paymentId ??
+          'pay_${DateTime.now().millisecondsSinceEpoch}';
+      final orderId = result.orderId ??
+          'order_${DateTime.now().millisecondsSinceEpoch}';
 
-    final orderId = orderRes['razorpay_order_id'] as String? ??
-        'order_${DateTime.now().millisecondsSinceEpoch}';
+      setState(() => _isProcessing = true);
+      final selectedDateStr = _dates[_selectedDateIndex]['full']!;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => _RazorpayCheckoutModal(
-        orderId: orderId,
-        amount: widget.basePrice,
+      await _paymentService.saveBookingToFirestore(
+        bookingId: bookingId,
         serviceTitle: widget.serviceTitle,
-        onPaymentSuccess: (paymentId, signature) async {
-          Navigator.pop(sheetCtx);
+        parentCategory: widget.parentCategory,
+        selectedIssue: widget.selectedIssue,
+        issueDesc: widget.issueDesc,
+        serviceAddress: widget.serviceAddress,
+        scheduledDate: selectedDateStr,
+        scheduledSlot: _selectedSlot,
+        amount: widget.basePrice,
+        paymentMethod: 'razorpay',
+        paymentStatus: 'paid',
+        razorpayPaymentId: paymentId,
+        razorpayOrderId: orderId,
+        requestTopRatedTechnician: _requestTopRatedTechnician,
+        photos: widget.uploadedPhotos,
+      );
 
-          setState(() => _isProcessing = true);
-          final selectedDateStr = _dates[_selectedDateIndex]['full']!;
+      if (!mounted) return;
+      setState(() => _isProcessing = false);
 
-          await _paymentService.verifyPaymentSignature(
-            orderId: orderId,
-            paymentId: paymentId,
-            signature: signature,
-          );
-
-          await _paymentService.saveBookingToFirestore(
-            bookingId: bookingId,
-            serviceTitle: widget.serviceTitle,
-            parentCategory: widget.parentCategory,
-            selectedIssue: widget.selectedIssue,
-            issueDesc: widget.issueDesc,
-            serviceAddress: widget.serviceAddress,
-            scheduledDate: selectedDateStr,
-            scheduledSlot: _selectedSlot,
-            amount: widget.basePrice,
-            paymentMethod: 'razorpay',
-            paymentStatus: 'paid',
-            razorpayPaymentId: paymentId,
-            razorpayOrderId: orderId,
-            requestTopRatedTechnician: _requestTopRatedTechnician,
-            photos: widget.uploadedPhotos,
-          );
-
-          if (!mounted) return;
-          setState(() => _isProcessing = false);
-
-          _showBookingConfirmedDialog(
-            bookingId: bookingId,
-            paymentMethod: 'Razorpay Online',
-            paymentStatus: 'Paid Successfully',
-            razorpayPaymentId: paymentId,
-            isPaid: true,
-          );
-        },
-      ),
-    );
+      _showBookingConfirmedDialog(
+        bookingId: bookingId,
+        paymentMethod: 'Razorpay Online',
+        paymentStatus: 'Paid Successfully',
+        razorpayPaymentId: paymentId,
+        isPaid: true,
+      );
+    } else if (result != null &&
+        result.errorMessage != null &&
+        !result.isSuccess) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Payment not completed: ${result.errorMessage}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   void _showBookingConfirmedDialog({

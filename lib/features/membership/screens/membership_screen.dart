@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/firebase_membership_service.dart';
+import '../../../shared/widgets/razorpay_webview_screen.dart';
 import '../../bookings/screens/bookings_screen.dart';
 
 /// Data model representing a BHK-tailored membership plan tier
@@ -379,7 +380,7 @@ class _MembershipScreenState extends State<MembershipScreen> {
         plan: plan,
         initialMonths: _selectedMonths,
         availableCoupons: _availableCoupons,
-        onSubscribed: (planName, durationMonths, totalPaid, code) {
+        onSubscribed: (planName, durationMonths, totalPaid, code, [paymentId, orderId]) {
           Navigator.pop(ctx);
           // Persist subscription asynchronously to Firebase Firestore `subscriptions`
           _firebaseService.createSubscription(
@@ -389,8 +390,16 @@ class _MembershipScreenState extends State<MembershipScreen> {
             durationMonths: durationMonths,
             totalPaid: totalPaid,
             couponCode: code,
+            razorpayPaymentId: paymentId,
+            razorpayOrderId: orderId,
           );
-          _showSuccessConfirmation(planName, durationMonths, totalPaid, code);
+          _showSuccessConfirmation(
+            planName,
+            durationMonths,
+            totalPaid,
+            code,
+            paymentId: paymentId,
+          );
         },
       ),
     );
@@ -401,8 +410,9 @@ class _MembershipScreenState extends State<MembershipScreen> {
     String planName,
     int durationMonths,
     int totalPaid,
-    String couponCode,
-  ) {
+    String couponCode, {
+    String? paymentId,
+  }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -472,6 +482,12 @@ class _MembershipScreenState extends State<MembershipScreen> {
                     _detailRow('Subscription ID', 'QX-MEM-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}'),
                     const SizedBox(height: 8),
                     _detailRow('Total Paid', '₹$totalPaid'),
+                    if (paymentId != null) ...[
+                      const SizedBox(height: 8),
+                      _detailRow('Razorpay Ref', paymentId, isHighlight: true),
+                    ],
+                    const SizedBox(height: 8),
+                    _detailRow('Payment Status', 'Paid via Razorpay', isHighlight: true),
                     const SizedBox(height: 8),
                     _detailRow('Duration', '$durationMonths ${durationMonths == 1 ? "Month" : "Months"}'),
                     if (couponCode.isNotEmpty) ...[
@@ -1416,8 +1432,8 @@ class _CheckoutSheet extends StatefulWidget {
   final MembershipPlanItem plan;
   final int initialMonths;
   final List<MembershipCoupon> availableCoupons;
-  final Function(String planName, int durationMonths, int totalPaid, String code)
-      onSubscribed;
+  final Function(String planName, int durationMonths, int totalPaid, String code,
+      [String? paymentId, String? orderId]) onSubscribed;
 
   const _CheckoutSheet({
     required this.plan,
@@ -1824,15 +1840,43 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   onPressed: _isProcessing
                       ? null
                       : () async {
+                          final messenger = ScaffoldMessenger.of(context);
                           setState(() => _isProcessing = true);
-                          await Future.delayed(const Duration(milliseconds: 700));
-                          if (mounted) {
-                            setState(() => _isProcessing = false);
+                          final subReferenceId =
+                              'MEM_${widget.plan.id}_${DateTime.now().millisecondsSinceEpoch}';
+
+                          final result = await RazorpayWebViewScreen.open(
+                            context,
+                            amount: totalPayable.toDouble(),
+                            referenceType: 'MEMBERSHIP',
+                            referenceId: subReferenceId,
+                            title: '${widget.plan.name} (${widget.plan.bhk}) - $_months Months',
+                            subtitle: 'Quickox Home Maintenance Membership',
+                            planId: widget.plan.id,
+                            planAmount: totalPayable.toDouble(),
+                            referralCode: _appliedCoupon?.code,
+                          );
+
+                          if (!mounted) return;
+                          setState(() => _isProcessing = false);
+
+                          if (result != null && result.isSuccess) {
                             widget.onSubscribed(
                               widget.plan.name,
                               _months,
                               totalPayable,
                               _appliedCoupon?.code ?? '',
+                              result.paymentId,
+                              result.orderId,
+                            );
+                          } else if (result != null &&
+                              result.errorMessage != null &&
+                              !result.isSuccess) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Payment not completed: ${result.errorMessage}'),
+                                backgroundColor: AppColors.error,
+                              ),
                             );
                           }
                         },

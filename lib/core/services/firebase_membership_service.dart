@@ -447,6 +447,8 @@ class FirebaseMembershipService {
     required int durationMonths,
     required int totalPaid,
     required String couponCode,
+    String? razorpayPaymentId,
+    String? razorpayOrderId,
     String? userId,
     String? userName,
     String? userPhone,
@@ -477,6 +479,11 @@ class FirebaseMembershipService {
           'userName': {'stringValue': userName ?? 'Quickox Customer'},
           'userPhone': {'stringValue': userPhone ?? '+91 9876543210'},
           'paymentStatus': {'stringValue': 'success'},
+          'paymentMethod': {'stringValue': 'razorpay'},
+          if (razorpayPaymentId != null)
+            'razorpayPaymentId': {'stringValue': razorpayPaymentId},
+          if (razorpayOrderId != null)
+            'razorpayOrderId': {'stringValue': razorpayOrderId},
         }
       };
 
