@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quickox_technician_app/core/services/firebase_services_service.dart';
 import 'package:quickox_technician_app/features/services/screens/category_detail_screen.dart';
@@ -101,7 +102,7 @@ void main() {
 
       // Choose What You Need section
       expect(find.text('Choose What You Need'), findsOneWidget);
-      expect(find.text('Book a Technician'), findsOneWidget);
+      expect(find.text('Book a Technician'), findsAtLeastNWidgets(1));
       expect(find.text('Buy Spare Parts'), findsOneWidget);
 
       // Inclusions section
@@ -144,7 +145,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -900));
+      await tester.ensureVisible(find.text('View All'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('View All'));
       await tester.pumpAndSettle();

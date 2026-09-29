@@ -474,201 +474,237 @@ class _ServiceDetailOverviewScreenState
 
   Widget _buildChooseWhatYouNeedSection(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Section Header (No "View All" text)
         const Text(
           'Choose What You Need',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.w800,
             color: Color(0xFF0F172A),
+            letterSpacing: -0.3,
           ),
         ),
         const SizedBox(height: 4),
         const Text(
-          "We've got you covered. Book a visit or shop for genuine parts.",
+          'Book a home visit or shop genuine parts — all in one place.',
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: 12.5,
             color: Color(0xFF64748B),
+            height: 1.3,
           ),
-          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 16),
 
-        // Two Cards: Book a Technician & Buy Spare Parts
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Card 1: Book a Technician
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF93C5FD), width: 1.2),
-                ),
-                child: Stack(
+        // Card 1: Book a Technician
+        _buildTechnicianCard(context),
+
+        const SizedBox(height: 16),
+
+        // Card 2: Buy Spare Parts
+        _buildSparePartsCard(context),
+      ],
+    );
+  }
+
+  Widget _buildTechnicianCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Content
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 24, 12, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Icon
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFEFF6FF),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.person_outline_rounded,
-                              color: Color(0xFF2563EB),
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          const Text(
-                            'Book a Technician',
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Schedule a home visit with our expert technicians.',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: Color(0xFF64748B),
-                              height: 1.3,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Bullet points
-                          _buildCheckRow(
-                            'Home inspection & diagnosis',
-                            const Color(0xFF2563EB),
-                          ),
-                          _buildCheckRow(
-                            'Expert repair & installation',
-                            const Color(0xFF2563EB),
-                          ),
-                          _buildCheckRow(
-                            'Service warranty up to 30 days',
-                            const Color(0xFF2563EB),
-                          ),
-                          _buildCheckRow(
-                            'Available at all days',
-                            const Color(0xFF2563EB),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2563EB),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                elevation: 0,
-                              ),
-                              onPressed: () => _openBookingFlow(context),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'Book Now',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Icon(Icons.arrow_forward_rounded, size: 14),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Center(
-                            child: Text(
-                              'Starts at $_effectivePrice',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                    // Icon Badge
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.engineering_outlined,
+                        color: Color(0xFF2563EB),
+                        size: 22,
                       ),
                     ),
-
-                    // MOST POPULAR Top Badge
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF7C3AED),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(15),
-                            bottomRight: Radius.circular(10),
-                          ),
-                        ),
-                        child: const Text(
-                          'MOST POPULAR',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.3,
-                          ),
-                        ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Book a Technician',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
                       ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Schedule a home visit with our expert technicians.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF64748B),
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCheckRow(
+                      'Home inspection & diagnosis',
+                      const Color(0xFF2563EB),
+                      const Color(0xFFDBEAFE),
+                    ),
+                    _buildCheckRow(
+                      'Expert repair & installation',
+                      const Color(0xFF2563EB),
+                      const Color(0xFFDBEAFE),
+                    ),
+                    _buildCheckRow(
+                      'Service warranty up to 30 days',
+                      const Color(0xFF2563EB),
+                      const Color(0xFFDBEAFE),
+                    ),
+                    _buildCheckRow(
+                      'Available at all days',
+                      const Color(0xFF2563EB),
+                      const Color(0xFFDBEAFE),
                     ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-
-            // Card 2: Buy Spare Parts
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF86EFAC), width: 1.2),
+              const SizedBox(width: 12),
+              // Right Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 105,
+                  height: 115,
+                  child: Image.network(
+                    'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=400&q=80',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Image.asset(
+                      'assets/images/electrician.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        color: const Color(0xFFEFF6FF),
+                        child: const Icon(
+                          Icons.engineering_rounded,
+                          size: 40,
+                          color: Color(0xFF2563EB),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                padding: const EdgeInsets.fromLTRB(12, 24, 12, 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Action CTA Button
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E60F9),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              onPressed: () => _openBookingFlow(context),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Flexible(
+                    child: Text(
+                      'Book a Technician',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 13,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSparePartsCard(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Content
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Icon
+                    // Icon Badge
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFDCFCE7),
-                        shape: BoxShape.circle,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
-                        Icons.storefront_outlined,
+                        Icons.shopping_cart_outlined,
                         color: Color(0xFF16A34A),
                         size: 22,
                       ),
@@ -677,7 +713,7 @@ class _ServiceDetailOverviewScreenState
                     const Text(
                       'Buy Spare Parts',
                       style: TextStyle(
-                        fontSize: 13.5,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: Color(0xFF0F172A),
                       ),
@@ -686,91 +722,147 @@ class _ServiceDetailOverviewScreenState
                     const Text(
                       'Get genuine spare parts & accessories delivered to your doorstep.',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: 11.5,
                         color: Color(0xFF64748B),
-                        height: 1.3,
+                        height: 1.35,
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    // Bullet points
                     _buildCheckRow(
                       '100% Genuine Products',
                       const Color(0xFF16A34A),
+                      const Color(0xFFDCFCE7),
                     ),
                     _buildCheckRow(
                       'Trusted Brands',
                       const Color(0xFF16A34A),
+                      const Color(0xFFDCFCE7),
                     ),
                     _buildCheckRow(
                       'Fast Delivery',
                       const Color(0xFF16A34A),
+                      const Color(0xFFDCFCE7),
                     ),
                     _buildCheckRow(
                       'Easy Returns',
                       const Color(0xFF16A34A),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF059669),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
-                        onPressed: () => _openSparePartsSheet(context),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                'Shop Parts',
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Icon(Icons.arrow_forward_rounded, size: 14),
-                          ],
-                        ),
-                      ),
+                      const Color(0xFFDCFCE7),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
+              // Right Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  width: 105,
+                  height: 115,
+                  child: Image.network(
+                    'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=400&q=80',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Image.asset(
+                      'assets/images/products/ac_pcb.jpg',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        color: const Color(0xFFDCFCE7),
+                        child: const Icon(
+                          Icons.inventory_2_rounded,
+                          size: 40,
+                          color: Color(0xFF16A34A),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Action CTA Button
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE8F5E9),
+                foregroundColor: const Color(0xFF166534),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
+              onPressed: () => _openSparePartsSheet(context),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Flexible(
+                    child: Text(
+                      'Shop Spare Parts',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16A34A).withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 13,
+                      color: Color(0xFF166534),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildCheckRow(String text, Color iconColor) {
+  Widget _buildCheckRow(String text, Color iconColor, Color bgColor) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.check_rounded, size: 14, color: iconColor),
-          const SizedBox(width: 5),
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Container(
+              width: 15,
+              height: 15,
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_rounded,
+                size: 11,
+                color: iconColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 7),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                fontSize: 10.5,
+                fontSize: 11,
                 color: Color(0xFF334155),
-                height: 1.2,
+                height: 1.3,
                 fontWeight: FontWeight.w500,
               ),
             ),
