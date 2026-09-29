@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 /// Represents a Google Account available on device or entered by user
 class GoogleAccount {
@@ -101,28 +103,45 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Sign in with chosen Google account (no OTP required)
-  Future<UserModel> signInWithGoogle(GoogleAccount account) async {
-    // Realistic OAuth handshake latency
-    await Future.delayed(const Duration(milliseconds: 500));
+  /// Sign in with Google using firebase_auth and google_sign_in
+  Future<UserModel?> signInWithGoogle([GoogleAccount? account]) async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return null; // user canceled
 
-    final user = UserModel(
-      id: account.id,
-      displayName: account.displayName,
-      email: account.email,
-      photoUrl: account.photoUrl,
-      phone: '+91 98765 43210',
-      authProvider: 'google',
-      loggedInAt: DateTime.now(),
-    );
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-    _currentUser = user;
-    notifyListeners();
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-    // Async sync with Firebase Firestore users collection in the background
-    _syncUserWithFirebase(user);
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final User? firebaseUser = userCredential.user;
 
-    return user;
+      if (firebaseUser == null) return null;
+
+      final user = UserModel(
+        id: firebaseUser.uid,
+        displayName: firebaseUser.displayName ?? 'Technician',
+        email: firebaseUser.email ?? '',
+        photoUrl: firebaseUser.photoURL,
+        phone: firebaseUser.phoneNumber,
+        authProvider: 'google',
+        loggedInAt: DateTime.now(),
+      );
+
+      _currentUser = user;
+      notifyListeners();
+
+      // Async sync with Firebase Firestore users collection in the background
+      _syncUserWithFirebase(user);
+
+      return user;
+    } catch (e) {
+      debugPrint('Google Sign-In Error: $e');
+      return null;
+    }
   }
 
   /// Sign in with Phone & Password
