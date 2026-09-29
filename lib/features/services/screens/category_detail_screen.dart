@@ -463,17 +463,18 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
-          children: [
-            const SizedBox(width: 16),
-            ...options.map((opt) {
+          children: options.map((opt) {
             final isSelected = _activeFrequency == opt['id'];
+            final isLast = opt['id'] == options.last['id'];
             final iconColor = isSelected
                 ? Colors.white
                 : (opt['inactiveIconColor'] as Color);
 
             return Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: EdgeInsets.only(right: isLast ? 0 : 10),
               child: InkWell(
                 onTap: () => _onFrequencyChanged(opt['id'] as String),
                 borderRadius: BorderRadius.circular(24),
@@ -533,12 +534,11 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                 ),
               ),
             );
-          }),
-        ],
+          }).toList(),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ── Private Service Grid Card (matching service_category_screen.jsx) ─────────
