@@ -460,13 +460,9 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     return Container(
       width: double.infinity,
       color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
         child: Row(
           children: options.map((opt) {
             final isSelected = _activeFrequency == opt['id'];
