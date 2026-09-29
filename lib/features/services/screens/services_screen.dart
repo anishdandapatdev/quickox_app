@@ -612,69 +612,74 @@ class _ServicesScreenState extends State<ServicesScreen>
     return AnimatedBuilder(
       animation: _fabExpandAnimation,
       builder: (context, child) {
+        final t = _fabExpandAnimation.value;
+        const height = 56.0;
+        // Interpolate width: 56.0 when collapsed (exact circle), 168.0 when expanded
+        final width = 56.0 + (112.0 * t);
+        const circleRadius = 28.0;
+
         return Tooltip(
           message: 'Book Inspection',
-          child: Material(
-            color: Colors.transparent,
-            elevation: 6,
-            shadowColor: AppColors.primary.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(AppRadius.full),
-            child: InkWell(
-              onTap: _onBookInspectionTapped,
-              borderRadius: BorderRadius.circular(AppRadius.full),
-              child: Ink(
-                height: 52,
-                padding: EdgeInsets.symmetric(
-                  horizontal: 14 + (6 * _fabExpandAnimation.value),
+          child: Container(
+            width: width,
+            height: height,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(circleRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1D4ED8).withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
                 ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.search_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                    ClipRect(
-                      child: SizeTransition(
-                        sizeFactor: _fabExpandAnimation,
-                        axis: Axis.horizontal,
-                        axisAlignment: -1.0,
-                        child: FadeTransition(
-                          opacity: _fabExpandAnimation,
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 8, right: 4),
-                            child: Text(
-                              'Book Inspection',
-                              maxLines: 1,
-                              overflow: TextOverflow.clip,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                letterSpacing: 0.2,
-                              ),
+              ],
+            ),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: _onBookInspectionTapped,
+                borderRadius: BorderRadius.circular(circleRadius),
+                child: SizedBox(
+                  width: width,
+                  height: height,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Search Icon - centered when circle (16px left), aligned when expanded (18px left)
+                      Positioned(
+                        left: 16.0 + (2.0 * t),
+                        child: const Icon(
+                          Icons.search_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      // Text - smoothly fades in/out with no layout constraint overflow
+                      Positioned(
+                        left: 48.0,
+                        child: Opacity(
+                          opacity: t.clamp(0.0, 1.0),
+                          child: const Text(
+                            'Book Inspection',
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13.5,
+                              letterSpacing: 0.2,
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
