@@ -56,6 +56,7 @@ class SubServicesScreen extends StatelessWidget {
         ];
 
       case 'Bike & Cab Service':
+      case 'Bike & Cab':
         return const [
           _SubServiceDetailItem(
             title: 'Doorstep Bike General Service',
@@ -93,6 +94,8 @@ class SubServicesScreen extends StatelessWidget {
         ];
 
       case 'Emergency Ambulance':
+      case 'Ambulance SOS':
+      case 'Ambulance':
         return const [
           _SubServiceDetailItem(
             title: 'Basic Life Support (BLS) Ambulance',
@@ -171,6 +174,8 @@ class SubServicesScreen extends StatelessWidget {
         ];
 
       case 'Event Booking (Birthday, Marriage, Rice ceremony)':
+      case 'Any Kind of Event Booking':
+      case 'Event Booking':
         return const [
           _SubServiceDetailItem(
             title: 'Birthday & Anniversary Event Setup',
@@ -197,6 +202,8 @@ class SubServicesScreen extends StatelessWidget {
         ];
 
       case 'QUICKOX ELECTRA Scooty':
+      case 'Electra Scooty':
+      case 'ELECTRA Scooty':
         return const [
           _SubServiceDetailItem(
             title: 'Doorstep Electric Scooty Test Ride',

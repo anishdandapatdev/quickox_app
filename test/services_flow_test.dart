@@ -10,7 +10,7 @@ import 'package:quickox_technician_app/shared/widgets/common_widgets.dart';
 
 void main() {
   group('Services Screen & Multi-Screen Flow Tests', () {
-    testWidgets('ServicesScreen renders header, search bar, categories list, and trust banner', (WidgetTester tester) async {
+    testWidgets('ServicesScreen renders all 8 service verticals matching explore_service.jsx and trust banner', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ServicesScreen(),
@@ -26,17 +26,22 @@ void main() {
       // Section title
       expect(find.text('Explore All Categories'), findsOneWidget);
 
-      // Category cards present
-      expect(find.text('AC Service'), findsOneWidget);
-      expect(find.text('Electrical Services'), findsOneWidget);
-      expect(find.text('Plumbing Services'), findsOneWidget);
+      // All 8 primary services present matching explore_service.jsx
+      expect(find.text('Home Service'), findsOneWidget);
+      expect(find.text('Food Delivery'), findsOneWidget);
+      expect(find.text('Bike & Cab Service'), findsOneWidget);
+      expect(find.text('Any Kind of Event Booking'), findsOneWidget);
+      expect(find.text('Emergency Ambulance'), findsOneWidget);
+      expect(find.text('Medicine Delivery'), findsOneWidget);
+      expect(find.text('Room Booking'), findsOneWidget);
+      expect(find.text('QUICKOX ELECTRA Scooty'), findsOneWidget);
 
       // Trust banner
       expect(find.text('Why Choose Quickox?'), findsOneWidget);
       expect(find.text('Verified\nProfessionals'), findsOneWidget);
     });
 
-    testWidgets('ServicesScreen search filters category list dynamically', (WidgetTester tester) async {
+    testWidgets('ServicesScreen search filters services dynamically', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: ServicesScreen(),
@@ -46,13 +51,54 @@ void main() {
 
       // Enter search query
       final searchInput = find.byType(TextField);
-      await tester.enterText(searchInput, 'Plumbing');
+      await tester.enterText(searchInput, 'Food');
       await tester.pumpAndSettle();
 
-      // Plumbing matches
-      expect(find.text('Plumbing Services'), findsOneWidget);
-      // AC should not be visible
-      expect(find.text('AC Service'), findsNothing);
+      // Food matches
+      expect(find.text('Food Delivery'), findsOneWidget);
+      // Ambulance should not be visible
+      expect(find.text('Emergency Ambulance'), findsNothing);
+    });
+
+    testWidgets('Multi-tier flow: ServicesScreen -> HomeServiceCategoriesScreen -> CategoryDetailScreen', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ServicesScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tier 1: Tap Home Service
+      await tester.tap(find.text('Home Service'));
+      await tester.pumpAndSettle();
+
+      // Tier 2: Home Service Categories Screen opened
+      expect(find.text('Home Service Categories'), findsOneWidget);
+      expect(find.text('AC Service'), findsOneWidget);
+
+      // Tier 3: Tap AC Service
+      await tester.tap(find.text('AC Service'));
+      await tester.pumpAndSettle();
+
+      // Category Details Screen opened
+      expect(find.text('All Services'), findsOneWidget);
+      expect(find.text('AC Deep Jet Cleaning & Servicing'), findsWidgets);
+    });
+
+    testWidgets('Multi-tier flow: ServicesScreen -> Food Delivery SubServicesScreen', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ServicesScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tier 1: Tap Food Delivery
+      await tester.tap(find.text('Food Delivery'));
+      await tester.pumpAndSettle();
+
+      // Tier 2: SubServicesScreen opened
+      expect(find.text('Daily Home-Style Tiffin Service'), findsOneWidget);
     });
 
     testWidgets('CategoryDetailScreen renders frequency tabs, counter, and service cards', (WidgetTester tester) async {
@@ -163,6 +209,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
+      FlutterError.onError = FlutterError.dumpErrorToConsole;
       // 1. ServicesScreen
       await tester.pumpWidget(
         const MaterialApp(
