@@ -106,7 +106,10 @@ class AuthService extends ChangeNotifier {
   /// Sign in with Google using firebase_auth and google_sign_in
   Future<UserModel?> signInWithGoogle([GoogleAccount? account]) async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '1007597837274-qamh600vt8ceatpkiglmsns8bkqup2s0.apps.googleusercontent.com',
+      );
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) return null; // user canceled
 
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
