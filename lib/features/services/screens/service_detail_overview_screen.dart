@@ -785,8 +785,8 @@ class _ServiceDetailOverviewScreenState
             height: 46,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE8F5E9),
-                foregroundColor: const Color(0xFF166534),
+                backgroundColor: const Color(0xFF1E60F9),
+                foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -806,7 +806,6 @@ class _ServiceDetailOverviewScreenState
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF166534),
                       ),
                     ),
                   ),
@@ -815,13 +814,13 @@ class _ServiceDetailOverviewScreenState
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF16A34A).withValues(alpha: 0.2),
+                      color: Colors.white.withValues(alpha: 0.25),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_forward_rounded,
                       size: 13,
-                      color: Color(0xFF166534),
+                      color: Colors.white,
                     ),
                   ),
                 ],
