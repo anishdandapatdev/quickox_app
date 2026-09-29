@@ -263,6 +263,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                                     serviceTitle: svc.title,
                                     serviceSubtitle: svc.desc,
                                     parentCategory: widget.categoryName,
+                                    relatedServicesList: _services,
                                   ),
                                 ),
                               );

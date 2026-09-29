@@ -17,12 +17,14 @@ class ServiceDetailOverviewScreen extends StatefulWidget {
     this.serviceSubtitle =
         'Diagnose and fix common refrigerator problems, repair refrigerator along with installation service.',
     this.parentCategory = 'Home Service',
+    this.relatedServicesList,
   });
 
   final ServiceItem? service;
   final String serviceTitle;
   final String serviceSubtitle;
   final String parentCategory;
+  final List<ServiceItem>? relatedServicesList;
 
   @override
   State<ServiceDetailOverviewScreen> createState() =>
@@ -34,6 +36,7 @@ class _ServiceDetailOverviewScreenState
   final FirebaseServicesService _servicesService = FirebaseServicesService();
   ServiceDetailModel? _detailModel;
   bool _isLoading = true;
+  List<ServiceItem> _relatedServices = [];
 
   String get _effectiveTitle =>
       widget.service?.title ?? widget.serviceTitle;
@@ -61,9 +64,42 @@ class _ServiceDetailOverviewScreenState
         category: _effectiveCategory,
         serviceId: widget.service?.id,
       );
+
+      // Determine related services from previous screen's other services
+      List<ServiceItem> related = [];
+      if (widget.relatedServicesList != null &&
+          widget.relatedServicesList!.isNotEmpty) {
+        related = widget.relatedServicesList!
+            .where((s) =>
+                s.id != widget.service?.id &&
+                s.title.trim().toLowerCase() != _effectiveTitle.trim().toLowerCase())
+            .toList();
+      }
+
+      // If empty or not passed, fetch other services from this category
+      if (related.isEmpty) {
+        final catServices = await _servicesService.fetchServicesForCategory(
+          categoryName: _effectiveCategory,
+        );
+        related = catServices
+            .where((s) =>
+                s.id != widget.service?.id &&
+                s.title.trim().toLowerCase() != _effectiveTitle.trim().toLowerCase())
+            .toList();
+      }
+
+      // Fallback to defaults if still empty
+      if (related.isEmpty) {
+        related = FirebaseServicesService.defaultServices
+            .where((s) =>
+                s.title.trim().toLowerCase() != _effectiveTitle.trim().toLowerCase())
+            .toList();
+      }
+
       if (mounted) {
         setState(() {
           _detailModel = model;
+          _relatedServices = related;
           _isLoading = false;
         });
       }
@@ -73,29 +109,6 @@ class _ServiceDetailOverviewScreenState
       }
     }
   }
-
-  final List<Map<String, dynamic>> _relatedServices = [
-    {
-      'title': 'AC Service',
-      'icon': Icons.ac_unit_rounded,
-      'color': Color(0xFF2563EB),
-    },
-    {
-      'title': 'Washing Machine\nRepair',
-      'icon': Icons.local_laundry_service_rounded,
-      'color': Color(0xFF0284C7),
-    },
-    {
-      'title': 'Geyser Repair',
-      'icon': Icons.water_drop_rounded,
-      'color': Color(0xFFD97706),
-    },
-    {
-      'title': 'Microwave Repair',
-      'icon': Icons.microwave_rounded,
-      'color': Color(0xFF7C3AED),
-    },
-  ];
 
   void _openBookingFlow(BuildContext context) {
     Navigator.push(
@@ -1119,33 +1132,13 @@ class _ServiceDetailOverviewScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'FAQs',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(50, 30),
-              ),
-              child: const Text(
-                'View All',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF2563EB),
-                ),
-              ),
-            ),
-          ],
+        const Text(
+          'FAQs',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+          ),
         ),
         const SizedBox(height: 6),
 
@@ -1227,6 +1220,12 @@ class _ServiceDetailOverviewScreenState
   }
 
   Widget _buildRelatedServicesColumn(BuildContext context) {
+    if (_relatedServices.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final displayList = _relatedServices.take(4).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1247,7 +1246,9 @@ class _ServiceDetailOverviewScreenState
             ),
             const SizedBox(width: 8),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pop(context);
+              },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size(50, 30),
@@ -1263,61 +1264,101 @@ class _ServiceDetailOverviewScreenState
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
 
-        // 2x2 Grid of Related Services
+        // 2x2 Grid of Related Services from previous screen
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: _relatedServices.length,
+          itemCount: displayList.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisExtent: 80,
+            mainAxisExtent: 130,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
           ),
           itemBuilder: (context, index) {
-            final item = _relatedServices[index];
+            final item = displayList[index];
             return InkWell(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => ServiceDetailOverviewScreen(
-                      serviceTitle: item['title'] as String,
-                      serviceSubtitle:
-                          'Certified repair, inspection and doorstep maintenance service.',
+                      service: item,
+                      serviceTitle: item.title,
+                      serviceSubtitle: item.desc,
+                      parentCategory: widget.parentCategory,
+                      relatedServicesList:
+                          widget.relatedServicesList ?? _relatedServices,
                     ),
                   ),
                 );
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      item['icon'] as IconData,
-                      size: 26,
-                      color: item['color'] as Color,
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item['title'] as String,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
-                        height: 1.15,
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 65,
+                      width: double.infinity,
+                      child: item.imageUrl.isNotEmpty
+                          ? (item.imageUrl.startsWith('http')
+                              ? Image.network(
+                                  item.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildFallbackThumbnail(item.title),
+                                )
+                              : Image.asset(
+                                  item.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildFallbackThumbnail(item.title),
+                                ))
+                          : _buildFallbackThumbnail(item.title),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 6, 8, 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.price,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1E60F9),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -1327,6 +1368,18 @@ class _ServiceDetailOverviewScreenState
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildFallbackThumbnail(String title) {
+    return Container(
+      color: const Color(0xFFF1F5F9),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.home_repair_service_rounded,
+        size: 24,
+        color: Color(0xFF2563EB),
+      ),
     );
   }
 

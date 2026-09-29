@@ -107,8 +107,49 @@ void main() {
       // Inclusions section
       expect(find.text("What's Included"), findsOneWidget);
 
-      // FAQs section
+      // FAQs section (View All removed from FAQs)
       expect(find.text('FAQs'), findsOneWidget);
+
+      // Related Services section renders with View All button
+      expect(find.text('Related Services'), findsOneWidget);
+      expect(find.text('View All'), findsOneWidget);
+    });
+
+    testWidgets('Related Services View All button navigates back to previous screen', (WidgetTester tester) async {
+      final sampleService = FirebaseServicesService.defaultServices.first;
+      bool popped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ServiceDetailOverviewScreen(
+                      serviceTitle: sampleService.title,
+                      serviceSubtitle: sampleService.desc,
+                      service: sampleService,
+                    ),
+                  ),
+                ).then((_) => popped = true);
+              },
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('View All'));
+      await tester.pumpAndSettle();
+
+      expect(popped, isTrue);
     });
 
     testWidgets('Services flow screens render on small 360x640 mobile screen without overflow', (WidgetTester tester) async {
