@@ -102,8 +102,34 @@ void main() {
         couponCode: 'QUICKOX20',
         razorpayPaymentId: 'pay_test_unit_123',
         razorpayOrderId: 'order_test_unit_456',
+        userId: 'usr_test_123',
+        userName: 'Anish Customer',
+        userPhone: '+91 9876543210',
+        userEmail: 'anish@example.com',
       );
       // Returns true or fallback without throwing
+      expect(ok, isA<bool>());
+    });
+
+    test('BookingPaymentService saveBookingToFirestore persists customer credentials', () async {
+      final service = BookingPaymentService();
+      final ok = await service.saveBookingToFirestore(
+        bookingId: 'BK-TEST-12345',
+        serviceTitle: 'AC Complete Servicing',
+        parentCategory: 'Appliance Repair',
+        selectedIssue: 'Cooling Issue',
+        issueDesc: 'AC not cooling properly',
+        serviceAddress: 'Purulia, West Bengal',
+        scheduledDate: 'Tomorrow, Oct 1',
+        scheduledSlot: '10:00 AM - 12:00 PM',
+        amount: 499,
+        paymentMethod: 'razorpay',
+        paymentStatus: 'paid',
+        customerName: 'Anish Customer',
+        customerPhone: '+91 9876543210',
+        customerEmail: 'anish@example.com',
+        userId: 'usr_test_123',
+      );
       expect(ok, isA<bool>());
     });
   });

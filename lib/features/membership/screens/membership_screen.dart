@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/firebase_membership_service.dart';
 import '../../../shared/widgets/razorpay_webview_screen.dart';
@@ -382,6 +383,12 @@ class _MembershipScreenState extends State<MembershipScreen> {
         availableCoupons: _availableCoupons,
         onSubscribed: (planName, durationMonths, totalPaid, code, [paymentId, orderId]) {
           Navigator.pop(ctx);
+          final user = AuthService.instance.currentUser;
+          final customerName = user?.displayName.isNotEmpty == true ? user!.displayName : 'Quickox Customer';
+          final customerEmail = user?.email.isNotEmpty == true ? user!.email : 'customer@quickox.com';
+          final customerPhone = user?.phone?.isNotEmpty == true ? user!.phone! : '+91 9876543210';
+          final userUid = user?.id;
+
           // Persist subscription asynchronously to Firebase Firestore `subscriptions`
           _firebaseService.createSubscription(
             planId: plan.id,
@@ -392,6 +399,10 @@ class _MembershipScreenState extends State<MembershipScreen> {
             couponCode: code,
             razorpayPaymentId: paymentId,
             razorpayOrderId: orderId,
+            userId: userUid,
+            userName: customerName,
+            userPhone: customerPhone,
+            userEmail: customerEmail,
           );
           _showSuccessConfirmation(
             planName,
@@ -1846,6 +1857,12 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                           final subReferenceId =
                               'MEM_${widget.plan.id}_${DateTime.now().millisecondsSinceEpoch}';
 
+                          final user = AuthService.instance.currentUser;
+                          final customerName = user?.displayName.isNotEmpty == true ? user!.displayName : 'Quickox Customer';
+                          final customerEmail = user?.email.isNotEmpty == true ? user!.email : 'customer@quickox.com';
+                          final customerPhone = user?.phone?.isNotEmpty == true ? user!.phone! : '+91 9876543210';
+                          final userUid = user?.id;
+
                           final result = await RazorpayWebViewScreen.open(
                             context,
                             amount: totalPayable.toDouble(),
@@ -1853,6 +1870,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                             referenceId: subReferenceId,
                             title: '${widget.plan.name} (${widget.plan.bhk}) - $_months Months',
                             subtitle: 'Quickox Home Maintenance Membership',
+                            customerName: customerName,
+                            customerEmail: customerEmail,
+                            customerPhone: customerPhone,
+                            userFirebaseUid: userUid,
                             planId: widget.plan.id,
                             planAmount: totalPayable.toDouble(),
                             referralCode: _appliedCoupon?.code,

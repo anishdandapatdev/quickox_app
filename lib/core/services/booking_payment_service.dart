@@ -49,6 +49,7 @@ class BookingPaymentService {
     required String referenceId,
     String referenceType = 'INSPECTION',
     String? referralCode,
+    String? userId,
   }) async {
     final targetUrls = [productionBackendUrl, backendBaseUrl, backendEmulatorUrl];
 
@@ -63,6 +64,7 @@ class BookingPaymentService {
             'reference_type': referenceType,
             'reference_id': referenceId,
             'referral_code': ?referralCode,
+            'user_id': ?userId,
           }),
         ).timeout(const Duration(seconds: 4));
 
@@ -153,6 +155,8 @@ class BookingPaymentService {
     String? razorpayOrderId,
     String? customerName,
     String? customerPhone,
+    String? customerEmail,
+    String? userId,
     bool requestTopRatedTechnician = false,
     List<String> photos = const [],
   }) async {
@@ -164,10 +168,14 @@ class BookingPaymentService {
       final effectivePhone = customerPhone?.trim().isNotEmpty == true
           ? customerPhone!.trim()
           : '+91 9876543210';
+      final effectiveEmail = customerEmail?.trim().isNotEmpty == true
+          ? customerEmail!.trim()
+          : 'customer@quickox.com';
 
       final bookingPayload = {
         'fields': {
           'bookingId': {'stringValue': bookingId},
+          'userId': {'stringValue': userId ?? ''},
           'serviceTitle': {'stringValue': serviceTitle},
           'category': {'stringValue': parentCategory},
           'issueCategory': {'stringValue': selectedIssue},
@@ -178,6 +186,7 @@ class BookingPaymentService {
           'pincode': {'stringValue': '723101'},
           'customerName': {'stringValue': effectiveName},
           'customerPhone': {'stringValue': effectivePhone},
+          'customerEmail': {'stringValue': effectiveEmail},
           'bookingDate': {'stringValue': scheduledDate},
           'scheduledDate': {'stringValue': scheduledDate},
           'timeSlot': {'stringValue': scheduledSlot},

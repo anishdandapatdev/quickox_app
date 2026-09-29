@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/booking_payment_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/common_widgets.dart';
@@ -162,9 +163,19 @@ class _ChooseAppointmentSlotScreenState
     final bookingId = 'BK-${DateTime.now().millisecondsSinceEpoch}';
     final selectedDateStr = _dates[_selectedDateIndex]['full']!;
 
+    final user = AuthService.instance.currentUser;
+    final customerName = user?.displayName.isNotEmpty == true ? user!.displayName : 'Quickox Customer';
+    final customerEmail = user?.email.isNotEmpty == true ? user!.email : 'customer@quickox.com';
+    final customerPhone = user?.phone?.isNotEmpty == true ? user!.phone! : '+91 9876543210';
+    final userUid = user?.id;
+
     try {
       await _paymentService.saveBookingToFirestore(
         bookingId: bookingId,
+        userId: userUid,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
         serviceTitle: widget.serviceTitle,
         parentCategory: widget.parentCategory,
         selectedIssue: widget.selectedIssue,
@@ -195,6 +206,12 @@ class _ChooseAppointmentSlotScreenState
     final messenger = ScaffoldMessenger.of(context);
     final bookingId = 'BK-${DateTime.now().millisecondsSinceEpoch}';
 
+    final user = AuthService.instance.currentUser;
+    final customerName = user?.displayName.isNotEmpty == true ? user!.displayName : 'Quickox Customer';
+    final customerEmail = user?.email.isNotEmpty == true ? user!.email : 'customer@quickox.com';
+    final customerPhone = user?.phone?.isNotEmpty == true ? user!.phone! : '+91 9876543210';
+    final userUid = user?.id;
+
     final result = await RazorpayWebViewScreen.open(
       context,
       amount: widget.basePrice.toDouble(),
@@ -202,6 +219,10 @@ class _ChooseAppointmentSlotScreenState
       referenceId: bookingId,
       title: widget.serviceTitle,
       subtitle: '${widget.selectedIssue} • ${widget.parentCategory}',
+      customerName: customerName,
+      customerEmail: customerEmail,
+      customerPhone: customerPhone,
+      userFirebaseUid: userUid,
     );
 
     if (result != null && result.isSuccess) {
@@ -215,6 +236,10 @@ class _ChooseAppointmentSlotScreenState
 
       await _paymentService.saveBookingToFirestore(
         bookingId: bookingId,
+        userId: userUid,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerEmail: customerEmail,
         serviceTitle: widget.serviceTitle,
         parentCategory: widget.parentCategory,
         selectedIssue: widget.selectedIssue,

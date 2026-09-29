@@ -452,6 +452,7 @@ class FirebaseMembershipService {
     String? userId,
     String? userName,
     String? userPhone,
+    String? userEmail,
   }) async {
     try {
       final subId = 'QX-MEM-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
@@ -465,10 +466,20 @@ class FirebaseMembershipService {
       final payload = {
         'fields': {
           'id': {'stringValue': subId},
+          'transactionId': {'stringValue': razorpayPaymentId ?? subId},
           'planId': {'stringValue': planId},
           'planName': {'stringValue': planName},
           'bhk': {'stringValue': bhk},
+          'billingCycle': {
+            'stringValue': durationMonths >= 12 ? 'yearly' : 'monthly',
+          },
           'durationMonths': {'integerValue': durationMonths.toString()},
+          'monthlyPrice': {
+            'integerValue': (totalPaid / (durationMonths > 0 ? durationMonths : 1)).round().toString(),
+          },
+          'subtotal': {'integerValue': totalPaid.toString()},
+          'addonSubtotal': {'integerValue': '0'},
+          'taxesAndFees': {'integerValue': '0'},
           'totalPaid': {'integerValue': totalPaid.toString()},
           'couponCode': {'stringValue': couponCode},
           'status': {'stringValue': 'active'},
@@ -478,8 +489,9 @@ class FirebaseMembershipService {
           'userId': {'stringValue': userId ?? 'demo_user_123'},
           'userName': {'stringValue': userName ?? 'Quickox Customer'},
           'userPhone': {'stringValue': userPhone ?? '+91 9876543210'},
+          'userEmail': {'stringValue': userEmail ?? 'customer@quickox.com'},
           'paymentStatus': {'stringValue': 'success'},
-          'paymentMethod': {'stringValue': 'razorpay'},
+          'paymentMethod': {'stringValue': 'Razorpay / UPI'},
           if (razorpayPaymentId != null)
             'razorpayPaymentId': {'stringValue': razorpayPaymentId},
           if (razorpayOrderId != null)
