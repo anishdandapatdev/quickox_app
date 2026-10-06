@@ -4,30 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-/// Represents a Google Account available on device or entered by user
-class GoogleAccount {
-  final String id;
-  final String displayName;
-  final String email;
-  final String? photoUrl;
-  final Color avatarBgColor;
-
-  const GoogleAccount({
-    required this.id,
-    required this.displayName,
-    required this.email,
-    this.photoUrl,
-    this.avatarBgColor = const Color(0xFF1A73E8),
-  });
-
-  String get initials {
-    final parts = displayName.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts[0].isEmpty) return 'G';
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
-}
-
 /// Represents the active authenticated user session in the Quickox App
 class UserModel {
   final String id;
@@ -70,66 +46,60 @@ class AuthService extends ChangeNotifier {
   UserModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
 
-  /// Default Google accounts for authentic, instant 1-tap sign-in selection
-  static const List<GoogleAccount> defaultAccounts = [
-    GoogleAccount(
-      id: 'g_rahul_101',
-      displayName: 'Rahul Sharma',
-      email: 'rahul.sharma@gmail.com',
-      avatarBgColor: Color(0xFF1A73E8), // Google Blue
-    ),
-    GoogleAccount(
-      id: 'g_anish_102',
-      displayName: 'Anish Kumar',
-      email: 'anish.quickox@gmail.com',
-      avatarBgColor: Color(0xFF34A853), // Google Green
-    ),
-    GoogleAccount(
-      id: 'g_technician_103',
-      displayName: 'Quickox Technician',
-      email: 'technician@quickox.com',
-      avatarBgColor: Color(0xFFEA4335), // Google Red
-    ),
-  ];
-
-  final List<GoogleAccount> _availableAccounts = List.from(defaultAccounts);
-  List<GoogleAccount> get availableAccounts => List.unmodifiable(_availableAccounts);
-
-  /// Add a custom Google account (from "Add another account" flow)
-  void addGoogleAccount(GoogleAccount account) {
-    if (!_availableAccounts.any((a) => a.email.toLowerCase() == account.email.toLowerCase())) {
-      _availableAccounts.insert(0, account);
-      notifyListeners();
-    }
-  }
+  /// Optional test handler for unit/widget testing without Google Play Services
+  @visibleForTesting
+  static Future<UserModel?> Function()? testSignInHandler;
 
   /// Sign in with Google using firebase_auth and google_sign_in
-  Future<UserModel?> signInWithGoogle([GoogleAccount? account]) async {
+  Future<UserModel?> signInWithGoogle() async {
+    if (testSignInHandler != null) {
+      final testUser = await testSignInHandler!();
+      if (testUser != null) {
+        _currentUser = testUser;
+        notifyListeners();
+      }
+      return testUser;
+    }
+
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: '1007597837274-qamh600vt8ceatpkiglmsns8bkqup2s0.apps.googleusercontent.com',
       );
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return null; // user canceled
+      if (googleUser == null) {
+        // User canceled Google account selection
+        return null;
+      }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      User? firebaseUser;
+      try {
+        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
 
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+        final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        firebaseUser = userCredential.user;
+      } catch (authError) {
+        debugPrint('Firebase signInWithCredential notice: $authError');
+        firebaseUser = FirebaseAuth.instance.currentUser;
+      }
 
-      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
-      final User? firebaseUser = userCredential.user;
-
-      if (firebaseUser == null) return null;
-
+      final fbName = firebaseUser?.displayName;
+      final fbEmail = firebaseUser?.email;
       final user = UserModel(
-        id: firebaseUser.uid,
-        displayName: firebaseUser.displayName ?? 'Technician',
-        email: firebaseUser.email ?? '',
-        photoUrl: firebaseUser.photoURL,
-        phone: firebaseUser.phoneNumber,
+        id: firebaseUser?.uid ?? 'g_${googleUser.id}',
+        displayName: (fbName != null && fbName.isNotEmpty)
+            ? fbName
+            : (googleUser.displayName != null && googleUser.displayName!.isNotEmpty
+                ? googleUser.displayName!
+                : 'Technician'),
+        email: (fbEmail != null && fbEmail.isNotEmpty)
+            ? fbEmail
+            : googleUser.email,
+        photoUrl: firebaseUser?.photoURL ?? googleUser.photoUrl,
+        phone: firebaseUser?.phoneNumber,
         authProvider: 'google',
         loggedInAt: DateTime.now(),
       );
@@ -143,18 +113,16 @@ class AuthService extends ChangeNotifier {
       return user;
     } catch (e) {
       debugPrint('Google Sign-In Error: $e');
-      return null;
+      rethrow;
     }
   }
 
   /// Sign in with Phone & Password
   Future<UserModel> signInWithPhone(String phone, String password) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
     final user = UserModel(
       id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
       displayName: 'Quickox Technician',
-      email: 'technician@quickox.com',
+      email: '',
       phone: phone,
       authProvider: 'phone',
       loggedInAt: DateTime.now(),
@@ -165,14 +133,10 @@ class AuthService extends ChangeNotifier {
     return user;
   }
 
-  /// Set of emails that are already registered and have completed profile setup.
-  /// Default existing accounts like rahul.sharma@gmail.com are included by default.
-  final Set<String> _registeredEmails = {
-    'rahul.sharma@gmail.com',
-    'technician@quickox.com',
-  };
+  /// In-memory cache of verified registered emails from Firestore
+  final Set<String> _registeredEmails = {};
 
-  /// Check whether an email already exists in the system (local cache or Firestore)
+  /// Check whether an email already exists in Firestore
   Future<bool> checkEmailExists(String email) async {
     final normalized = email.trim().toLowerCase();
     if (_registeredEmails.contains(normalized)) {
@@ -183,7 +147,7 @@ class AuthService extends ChangeNotifier {
       final url = Uri.parse(
         'https://firestore.googleapis.com/v1/projects/home-service-haldia/databases/(default)/documents/users',
       );
-      final response = await http.get(url).timeout(const Duration(seconds: 2));
+      final response = await http.get(url).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final documents = data['documents'] as List<dynamic>?;
@@ -199,8 +163,8 @@ class AuthService extends ChangeNotifier {
           }
         }
       }
-    } catch (_) {
-      // Graceful offline fallback
+    } catch (e) {
+      debugPrint('Error checking email exists in Firestore: $e');
     }
 
     return _registeredEmails.contains(normalized);
@@ -231,7 +195,7 @@ class AuthService extends ChangeNotifier {
       photoUrl: current?.photoUrl,
       phone: (phone != null && phone.isNotEmpty)
           ? phone
-          : (current?.phone ?? '+91 98765 43210'),
+          : (current?.phone ?? ''),
       authProvider: current?.authProvider ?? 'google',
       loggedInAt: current?.loggedInAt ?? DateTime.now(),
     );
@@ -271,9 +235,9 @@ class AuthService extends ChangeNotifier {
         url,
         headers: {'Content-Type': 'application/json'},
         body: body,
-      ).timeout(const Duration(seconds: 3));
-    } catch (_) {
-      // Graceful offline fallback
+      ).timeout(const Duration(seconds: 4));
+    } catch (e) {
+      debugPrint('Firestore sync notice: $e');
     }
   }
 
@@ -288,10 +252,7 @@ class AuthService extends ChangeNotifier {
   void resetSession() {
     _currentUser = null;
     _registeredEmails.clear();
-    _registeredEmails.addAll([
-      'rahul.sharma@gmail.com',
-      'technician@quickox.com',
-    ]);
+    testSignInHandler = null;
     notifyListeners();
   }
 }

@@ -145,7 +145,16 @@ void main() {
     expect(find.text('Password is required'), findsOneWidget);
   });
 
-  testWidgets('LoginScreen Continue with Google logs in directly to MainNavigationScreen', skip: true, (WidgetTester tester) async {
+  testWidgets('LoginScreen Continue with Google logs in directly to MainNavigationScreen', (WidgetTester tester) async {
+    AuthService.testSignInHandler = () async => UserModel(
+      id: 'usr_test_1',
+      displayName: 'Rahul Sharma',
+      email: 'rahul.sharma@gmail.com',
+      authProvider: 'google',
+      loggedInAt: DateTime.now(),
+    );
+    AuthService.instance.registerEmail('rahul.sharma@gmail.com');
+
     await tester.pumpWidget(
       const MaterialApp(
         home: LoginScreen(),
@@ -160,25 +169,23 @@ void main() {
     await tester.tap(googleBtn);
     await tester.pumpAndSettle();
 
-    // Choose Google account from GoogleAccountPickerModal
-    final accountFinder = find.text('rahul.sharma@gmail.com');
-    expect(accountFinder, findsOneWidget);
-    await tester.tap(accountFinder);
-    await tester.pump();
-
     // Verify it does NOT navigate to OtpVerificationScreen
     expect(find.byType(OtpVerificationScreen), findsNothing);
 
-    // Let the authentication delay complete
-    await tester.pump(const Duration(milliseconds: 700));
-    await tester.pumpAndSettle();
-
     // Verify user is directly in MainNavigationScreen
     expect(find.byType(MainNavigationScreen), findsOneWidget);
-    expect(find.byType(OtpVerificationScreen), findsNothing);
   });
 
-  testWidgets('SignUpScreen Continue with Google logs in directly to MainNavigationScreen', skip: true, (WidgetTester tester) async {
+  testWidgets('SignUpScreen Continue with Google logs in directly to MainNavigationScreen', (WidgetTester tester) async {
+    AuthService.testSignInHandler = () async => UserModel(
+      id: 'usr_test_1',
+      displayName: 'Rahul Sharma',
+      email: 'rahul.sharma@gmail.com',
+      authProvider: 'google',
+      loggedInAt: DateTime.now(),
+    );
+    AuthService.instance.registerEmail('rahul.sharma@gmail.com');
+
     await tester.pumpWidget(
       const MaterialApp(
         home: SignUpScreen(),
@@ -193,25 +200,22 @@ void main() {
     await tester.tap(googleBtn);
     await tester.pumpAndSettle();
 
-    // Choose Google account from GoogleAccountPickerModal
-    final accountFinder = find.text('rahul.sharma@gmail.com');
-    expect(accountFinder, findsOneWidget);
-    await tester.tap(accountFinder);
-    await tester.pump();
-
     // Verify it does NOT navigate to OtpVerificationScreen
     expect(find.byType(OtpVerificationScreen), findsNothing);
 
-    // Let the authentication delay complete
-    await tester.pump(const Duration(milliseconds: 700));
-    await tester.pumpAndSettle();
-
     // Verify user is directly in MainNavigationScreen
     expect(find.byType(MainNavigationScreen), findsOneWidget);
-    expect(find.byType(OtpVerificationScreen), findsNothing);
   });
 
-  testWidgets('LoginScreen Continue with Google with new account navigates to ProfileSetupScreen, then home after setup', skip: true, (WidgetTester tester) async {
+  testWidgets('LoginScreen Continue with Google with new account navigates to ProfileSetupScreen, then home after setup', (WidgetTester tester) async {
+    AuthService.testSignInHandler = () async => UserModel(
+      id: 'usr_test_2',
+      displayName: 'Anish Kumar',
+      email: 'anish.quickox@gmail.com',
+      authProvider: 'google',
+      loggedInAt: DateTime.now(),
+    );
+
     await tester.pumpWidget(
       const MaterialApp(
         home: LoginScreen(),
@@ -224,16 +228,6 @@ void main() {
     expect(googleBtn, findsOneWidget);
     await tester.ensureVisible(googleBtn);
     await tester.tap(googleBtn);
-    await tester.pumpAndSettle();
-
-    // Choose Google account for Anish Kumar (new email not yet registered)
-    final accountFinder = find.text('anish.quickox@gmail.com');
-    expect(accountFinder, findsOneWidget);
-    await tester.tap(accountFinder);
-    await tester.pump();
-
-    // Let authentication delay complete
-    await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
     // Verify user is navigated to ProfileSetupScreen
@@ -255,7 +249,15 @@ void main() {
     expect(find.byType(MainNavigationScreen), findsOneWidget);
   });
 
-  testWidgets('SignUpScreen Continue with Google with new account navigates to ProfileSetupScreen, then home after setup', skip: true, (WidgetTester tester) async {
+  testWidgets('SignUpScreen Continue with Google with new account navigates to ProfileSetupScreen, then home after setup', (WidgetTester tester) async {
+    AuthService.testSignInHandler = () async => UserModel(
+      id: 'usr_test_2',
+      displayName: 'Anish Kumar',
+      email: 'anish.quickox@gmail.com',
+      authProvider: 'google',
+      loggedInAt: DateTime.now(),
+    );
+
     await tester.pumpWidget(
       const MaterialApp(
         home: SignUpScreen(),
@@ -268,16 +270,6 @@ void main() {
     expect(googleBtn, findsOneWidget);
     await tester.ensureVisible(googleBtn);
     await tester.tap(googleBtn);
-    await tester.pumpAndSettle();
-
-    // Choose Google account for Anish Kumar
-    final accountFinder = find.text('anish.quickox@gmail.com');
-    expect(accountFinder, findsOneWidget);
-    await tester.tap(accountFinder);
-    await tester.pump();
-
-    // Let authentication delay complete
-    await tester.pump(const Duration(milliseconds: 700));
     await tester.pumpAndSettle();
 
     // Verify user is navigated to ProfileSetupScreen

@@ -12,12 +12,7 @@ import 'profile_setup_screen.dart';
 
 /// Customer Sign Up Screen: Phone number, Send OTP, and Sign in with Google
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({
-    super.key,
-    this.promptAccountPicker = true,
-  });
-
-  final bool promptAccountPicker;
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -74,17 +69,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isGoogleLoading = true);
-    
-    final user = await AuthService.instance.signInWithGoogle();
-    
+
+    UserModel? user;
+    try {
+      user = await AuthService.instance.signInWithGoogle();
+    } catch (e) {
+      debugPrint('Google Sign-In error: $e');
+      if (!mounted) return;
+      setState(() => _isGoogleLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Google Sign-In failed: ${e.toString().replaceAll('Exception:', '').trim()}',
+          ),
+          backgroundColor: const Color(0xFFB91C1C),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (!mounted) return;
-    
+
     if (user == null) {
+      // User canceled Google account selection
       setState(() => _isGoogleLoading = false);
       return;
     }
 
-    final emailExists = await AuthService.instance.checkEmailExists(user.email);
+    final validUser = user;
+    final emailExists = await AuthService.instance.checkEmailExists(validUser.email);
 
     if (!mounted) return;
     setState(() => _isGoogleLoading = false);
@@ -98,7 +112,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Signed in as ${user.displayName} (${user.email})',
+                  'Signed in as ${validUser.displayName} (${validUser.email})',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -122,9 +136,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => ProfileSetupScreen(
-            phoneNumber: user.phone ?? '',
-            initialName: user.displayName,
-            initialEmail: user.email,
+            phoneNumber: validUser.phone ?? '',
+            initialName: validUser.displayName,
+            initialEmail: validUser.email,
           ),
         ),
       );

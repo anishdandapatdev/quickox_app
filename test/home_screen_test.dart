@@ -79,11 +79,15 @@ void main() {
     final bookButtons = find.text('Book');
     expect(bookButtons, findsAtLeastNWidgets(3));
 
-    // Scroll to and tap Book button
+    // Scroll to and tap Book button (navigates to ServiceDetailOverviewScreen)
     await tester.ensureVisible(bookButtons.first);
     await tester.pumpAndSettle();
     await tester.tap(bookButtons.first);
-    expect(navigatedTab, 1);
+    await tester.pumpAndSettle();
+    // Return back to HomeScreen
+    final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+    navigator.pop();
+    await tester.pumpAndSettle();
 
     // Verify View All Services Catalog CTA button at bottom
     final catalogCta = find.text('View All Services Catalog →');

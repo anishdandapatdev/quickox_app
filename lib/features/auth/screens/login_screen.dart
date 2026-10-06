@@ -14,12 +14,7 @@ import '../../../core/services/auth_service.dart';
 /// Login screen — Phone and password authentication
 /// Follows the Quickox design system: Royal Blue primary, white background.
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    this.promptAccountPicker = true,
-  });
-
-  final bool promptAccountPicker;
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -121,16 +116,35 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _googleLogin() async {
     setState(() => _isGoogleLoading = true);
 
-    final user = await AuthService.instance.signInWithGoogle();
-    
+    UserModel? user;
+    try {
+      user = await AuthService.instance.signInWithGoogle();
+    } catch (e) {
+      debugPrint('Google Sign-In error: $e');
+      if (!mounted) return;
+      setState(() => _isGoogleLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Google Sign-In failed: ${e.toString().replaceAll('Exception:', '').trim()}',
+          ),
+          backgroundColor: const Color(0xFFB91C1C),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (!mounted) return;
-    
+
     if (user == null) {
+      // User canceled the Google Sign-In prompt
       setState(() => _isGoogleLoading = false);
       return;
     }
 
-    final emailExists = await AuthService.instance.checkEmailExists(user.email);
+    final validUser = user;
+    final emailExists = await AuthService.instance.checkEmailExists(validUser.email);
 
     if (!mounted) return;
     setState(() => _isGoogleLoading = false);
@@ -145,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Signed in as ${user.displayName} (${user.email})',
+                  'Signed in as ${validUser.displayName} (${validUser.email})',
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -169,9 +183,9 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(
           builder: (_) => ProfileSetupScreen(
-            phoneNumber: user.phone ?? '',
-            initialName: user.displayName,
-            initialEmail: user.email,
+            phoneNumber: validUser.phone ?? '',
+            initialName: validUser.displayName,
+            initialEmail: validUser.email,
           ),
         ),
       );
@@ -320,7 +334,6 @@ class _Logo extends StatelessWidget {
     );
   }
 }
-
 
 class _GoogleIcon extends StatelessWidget {
   const _GoogleIcon();
